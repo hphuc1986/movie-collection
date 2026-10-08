@@ -1,6 +1,5 @@
-name: .NET Core Backend CI
+name: Cloudflare Serverless Backend CI
 
-# Controls when the workflow will run
 on:
   push:
     branches: [ "main", "master", "develop" ]
@@ -8,29 +7,30 @@ on:
     branches: [ "main", "master" ]
 
 jobs:
-  build-and-test:
-    # Specifies the type of cloud machine runner to execute on
+  validate-worker:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Download the source code from your repository into the runner environment
+    # Step 1: Download your source code files from GitHub
     - name: Checkout Source Code
-      uses: actions/checkout@v7
+      uses: actions/checkout@v4
 
-    # Step 2: Provision the Microsoft .NET SDK environment inside the container
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v6
+    # Step 2: Provision a clean Node.js container environment
+    - name: Setup Node.js Environment
+      uses: actions/setup-node@v4
       with:
-        dotnet-version: '8.0.x' # Forces the runner to use the current .NET 8 LTS framework
+        node-version: '20' # Modern LTS Node execution framework
+        cache: 'npm'
+        cache-dependency-path: 'backend-worker/package-lock.json'
 
-    # Step 3: Download and restore all project NuGet dependencies
-    - name: Restore NuGet Packages
-      run: dotnet restore backend-api/MovieCatalog.sln
+    # Step 3: Install your serverless package modules
+    - name: Install Dependencies
+      run: |
+        cd backend-worker
+        npm ci
 
-    # Step 4: Compile all solution code layers in Release mode without re-restoring packages
-    - name: Compile Code (Build)
-      run: dotnet build backend-api/MovieCatalog.sln --configuration Release --no-restore
-
-    # Step 5: Execute your xUnit automated test suites
-    - name: Run xUnit Test Suites
-      run: dotnet test backend-api/MovieCatalog.sln --configuration Release --no-build --verbosity normal
+    # Step 4: Verify your Hono.js TypeScript compiles with zero types errors
+    - name: Run TypeScript Type Checks
+      run: |
+        cd backend-worker
+        npm run tsc -- --noEmit
