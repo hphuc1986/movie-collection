@@ -14,7 +14,7 @@ function App() {
         setMovies(data);
       } catch (err: any) {
         console.error(err);
-        setError('Could not connect to the .NET Backend API. Make sure it is running on port 7091!');
+        setError('Could not fetch collection records from the cloud serverless backend worker API.')
       } finally {
         setLoading(false);
       }

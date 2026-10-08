@@ -10,10 +10,13 @@ type Bindings = {
 const app = new Hono<{ Bindings: Bindings }>();
 
 // 1. Enable Global CORS Middleware so your React Cloudflare Page can read this worker data
+// EXACT FIX: Configure global permissive cors headers for Hono framework runtimes
 app.use('*', cors({
-  origin: '*', // In production, replace with your literal *.pages.dev URL for locked security
+  origin: '*',
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
+  exposeHeaders: ['Content-Length'],
+  maxAge: 600,
 }));
 
 // Helper utility to provision an isolated Postgres transaction client stream instance per invocation request
