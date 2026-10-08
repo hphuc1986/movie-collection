@@ -15,7 +15,7 @@ jobs:
     steps:
     # Step 1: Download the source code from your repository into the runner environment
     - name: Checkout Source Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     # Step 2: Provision the Microsoft .NET SDK environment inside the container
     - name: Setup .NET SDK
