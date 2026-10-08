@@ -18,6 +18,6 @@ const api = axios.create({
 });
 
 export const getMovies = async (): Promise<Movie[]> => {
-  const response = await api.get<Movie[]>('/api/movies');
+  const response = await api.get<Movie[]>('/movies');
   return response.data;
 };
