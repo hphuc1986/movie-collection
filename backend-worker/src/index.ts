@@ -8,6 +8,7 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
+// Global permissive CORS mapping rules for modern single page applications
 app.use('*', cors({
   origin: '*',
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -17,24 +18,26 @@ app.use('*', cors({
 }));
 
 // 🧳 GLOBAL STATE HOLDER: Keeps your database client connection alive between invocations
-let sqlInstance: any = null;
+let cachedSqlInstance: any = null;
 
 const getDbClient = (databaseUrl: string) => {
-  // FIXED: Only create a new connection pool if one does not already exist!
-  if (!sqlInstance) {
-    sqlInstance = postgres(databaseUrl, { 
+  // FIXED: Only initialize a single connection pool instance if it doesn't exist yet!
+  if (!cachedSqlInstance) {
+    cachedSqlInstance = postgres(databaseUrl, { 
       ssl: 'require',
-      max: 1, // Restricts your serverless instance to a single reusable connection slot
-      idle_timeout: 20 // Automatically drops idle sockets cleanly
+      max: 1,           // Restricts your worker to a single reusable connection socket
+      idle_timeout: 20, // Automatically purges old idle sockets cleanly
+      connect_timeout: 10
     });
   }
-  return sqlInstance;
+  return cachedSqlInstance;
 };
 
 // 2. GET ALL RECORDS ROUTE: /api/movies
 app.get('/api/movies', async (c) => {
   const sql = getDbClient(c.env.DATABASE_URL);
   try {
+    // Queries your Supabase table data cleanly
     const rawMovies = await sql`SELECT * FROM "Movie_Collection" ORDER BY "Id" DESC`;
     
     const formattedMovies = rawMovies.map((m: any) => ({
@@ -50,8 +53,8 @@ app.get('/api/movies', async (c) => {
   } catch (error: any) {
     return c.json({ error: 'Database execution failure', message: error.message }, 500);
   }
-  // ❌ REMOVED: await sql.end() 
-  // Never close the pool here! Letting it persist lets the next request reuse the connection instantly.
+  // ❌ CRITICAL: Never call sql.end() inside endpoints here anymore.
+  // Keeping the pool open allows subsequent user requests to reuse it instantly.
 });
 
 // 3. POST NEW MOVIE ROUTE: /api/movies
