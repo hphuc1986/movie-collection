@@ -19,7 +19,7 @@ jobs:
 
     # Step 2: Provision the Microsoft .NET SDK environment inside the container
     - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: '8.0.x' # Forces the runner to use the current .NET 8 LTS framework
 
