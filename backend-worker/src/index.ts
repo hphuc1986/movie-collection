@@ -28,11 +28,11 @@ const getDbClient = (databaseUrl: string) => {
 app.get('/api/movies', async (c) => {
   const sql = getDbClient(c.env.DATABASE_URL);
   try {
-    // Queries your explicit Supabase table name we mapped out earlier!
-    const movies = await sql`SELECT * FROM "Movie_Collection" ORDER BY "Id" DESC`;
-
-// EXACT FIX: Map capitalized Supabase columns directly to the camelCase variables React expects!
-    const formattedMovies = rawMovies.map(m => ({
+    // FIXED: Ensured the result array variable aligns perfectly with the mapping loop below
+    const rawMovies = await sql`SELECT * FROM "Movie_Collection" ORDER BY "Id" DESC`;
+    
+    // FIXED: Added an explicit row parameter type constraint (any) to bypass strict compilation loops
+    const formattedMovies = rawMovies.map((m: any) => ({
       id: m.Id,
       title: m.Title,
       releaseYear: m.ReleaseYear,
@@ -41,11 +41,11 @@ app.get('/api/movies', async (c) => {
       createdAt: m.CreatedAt
     }));
 
-    return c.json(movies);
+    return c.json(formattedMovies);
   } catch (error: any) {
     return c.json({ error: 'Database execution failure', message: error.message }, 500);
   } finally {
-    await sql.end(); // Safely close and tear down database socket streams immediately upon finish
+    await sql.end();
   }
 });
 
@@ -64,7 +64,7 @@ app.post('/api/movies', async (c) => {
       RETURNING *
     `;
 
-    // Map the returned row to lowercase for React
+    // FIXED: Ensured explicit database property mapping matching uppercase tables
     const formattedMovie = {
       id: newMovie.Id,
       title: newMovie.Title,
