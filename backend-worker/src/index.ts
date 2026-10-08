@@ -1,14 +1,14 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import postgres from 'postgres';
 
 type Bindings = {
-  DATABASE_URL: string;
+  SUPABASE_URL: string;
+  SUPABASE_ANON_KEY: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-// Global permissive CORS mapping rules for modern single page applications
+// Global permissive CORS configurations for frontend clients
 app.use('*', cors({
   origin: '*',
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -17,29 +17,28 @@ app.use('*', cors({
   maxAge: 600,
 }));
 
-// 🧳 GLOBAL STATE HOLDER: Keeps your database client connection alive between invocations
-let cachedSqlInstance: any = null;
-
-const getDbClient = (databaseUrl: string) => {
-  // FIXED: Only initialize a single connection pool instance if it doesn't exist yet!
-  if (!cachedSqlInstance) {
-    cachedSqlInstance = postgres(databaseUrl, { 
-      ssl: 'require',
-      max: 1,           // Restricts your worker to a single reusable connection socket
-      idle_timeout: 20, // Automatically purges old idle sockets cleanly
-      connect_timeout: 10
-    });
-  }
-  return cachedSqlInstance;
-};
-
-// 2. GET ALL RECORDS ROUTE: /api/movies
+// 1. GET ALL RECORDS ROUTE: /api/movies
 app.get('/api/movies', async (c) => {
-  const sql = getDbClient(c.env.DATABASE_URL);
+  // Directly targets your Supabase table using clean HTTP queries
+  const targetUrl = `${c.env.SUPABASE_URL}/rest/v1/Movie_Collection?select=*&order=Id.desc`;
+
   try {
-    // Queries your Supabase table data cleanly
-    const rawMovies = await sql`SELECT * FROM "Movie_Collection" ORDER BY "Id" DESC`;
-    
+    const response = await fetch(targetUrl, {
+      method: 'GET',
+      headers: {
+        'apikey': c.env.SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${c.env.SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Supabase returned status code: ${response.status}`);
+    }
+
+    const rawMovies: any = await response.json();
+
+    // Map your database headers smoothly to the lowercase attributes React expects
     const formattedMovies = rawMovies.map((m: any) => ({
       id: m.Id,
       title: m.Title,
@@ -51,26 +50,45 @@ app.get('/api/movies', async (c) => {
 
     return c.json(formattedMovies);
   } catch (error: any) {
-    return c.json({ error: 'Database execution failure', message: error.message }, 500);
+    return c.json({ error: 'Database HTTP transaction failure', message: error.message }, 500);
   }
-  // ❌ CRITICAL: Never call sql.end() inside endpoints here anymore.
-  // Keeping the pool open allows subsequent user requests to reuse it instantly.
 });
 
-// 3. POST NEW MOVIE ROUTE: /api/movies
+// 2. POST NEW MOVIE ROUTE: /api/movies
 app.post('/api/movies', async (c) => {
-  const sql = getDbClient(c.env.DATABASE_URL);
+  const targetUrl = `${c.env.SUPABASE_URL}/rest/v1/Movie_Collection`;
+
   try {
     const body = await c.req.json();
     const { title, releaseYear, format, rating } = body;
 
     if (!title) return c.json({ error: 'Movie title parameter is required.' }, 400);
 
-    const [newMovie] = await sql`
-      INSERT INTO "Movie_Collection" ("Title", "ReleaseYear", "Format", "Rating", "CreatedAt")
-      VALUES (${title}, ${releaseYear || null}, ${format || 'Digital'}, ${rating || null}, ${new Date().toISOString()})
-      RETURNING *
-    `;
+    // Map the incoming React variables to your capitalized database columns
+    const dbPayload = {
+      Title: title,
+      ReleaseYear: releaseYear || null,
+      Format: format || 'Digital',
+      Rating: rating || null,
+      CreatedAt: new Date().toISOString()
+    };
+
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'apikey': c.env.SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${c.env.SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation' // Instructs Supabase to return the newly created row data
+      },
+      body: JSON.stringify(dbPayload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Supabase insert returned error status: ${response.status}`);
+    }
+
+    const [newMovie]: any = await response.json();
 
     const formattedMovie = {
       id: newMovie.Id,
@@ -83,7 +101,7 @@ app.post('/api/movies', async (c) => {
 
     return c.json(formattedMovie, 201);
   } catch (error: any) {
-    return c.json({ error: 'Failed to catalog record entry.', message: error.message }, 500);
+    return c.json({ error: 'Failed to save movie record entry via HTTP.', message: error.message }, 500);
   }
 });
 
