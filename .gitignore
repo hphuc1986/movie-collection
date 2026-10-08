@@ -1,0 +1,36 @@
+## Code-First Architecture: Universal Monorepo .gitignore
+
+# ====== Visual Studio & .NET Junk ======
+.vs/
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.launchSettings.json
+
+# ====== Python Automation Junk ======
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+ENV/
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+
+# ====== Operating System Junk ======
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store

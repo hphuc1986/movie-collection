@@ -1,0 +1,7 @@
+version: 2
+updates:
+  # Instruct GitHub to check your Action yml files automatically
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly" # Scans for updates every week

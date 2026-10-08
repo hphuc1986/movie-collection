@@ -1,0 +1,36 @@
+name: .NET Core Backend CI
+
+# Controls when the workflow will run
+on:
+  push:
+    branches: [ "main", "master", "develop" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-test:
+    # Specifies the type of cloud machine runner to execute on
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Download the source code from your repository into the runner environment
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
+
+    # Step 2: Provision the Microsoft .NET SDK environment inside the container
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x' # Forces the runner to use the current .NET 8 LTS framework
+
+    # Step 3: Download and restore all project NuGet dependencies
+    - name: Restore NuGet Packages
+      run: dotnet restore backend-api/MovieCatalog.sln
+
+    # Step 4: Compile all solution code layers in Release mode without re-restoring packages
+    - name: Compile Code (Build)
+      run: dotnet build backend-api/MovieCatalog.sln --configuration Release --no-restore
+
+    # Step 5: Execute your xUnit automated test suites
+    - name: Run xUnit Test Suites
+      run: dotnet test backend-api/MovieCatalog.sln --configuration Release --no-build --verbosity normal
