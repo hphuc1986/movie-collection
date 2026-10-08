@@ -26,8 +26,8 @@ jobs:
         cd backend-worker
         npm ci
 
-    # FIXED STEP: Using Hono's native project verification validation command
+    # FIXED: Navigates directly into the folder and forces an absolute tsc compilation test
     - name: Run TypeScript Type Checks
       run: |
         cd backend-worker
-        npm run check
+        npx tsc --noEmit
