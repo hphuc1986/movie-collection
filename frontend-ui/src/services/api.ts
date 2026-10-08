@@ -21,3 +21,15 @@ export const getMovies = async (): Promise<Movie[]> => {
   const response = await api.get<Movie[]>('/movies');
   return response.data;
 };
+
+// Add these parameters to frontend-ui/src/services/api.ts
+
+export const registerUser = async (email: string, password: string, fullName: string) => {
+  const response = await api.post('/auth/register', { email, password, fullName });
+  return response.data;
+};
+
+export const loginUser = async (email: string, password: string) => {
+  const response = await api.post('/auth/login', { email, password });
+  return response.data; // Contains your critical token payload
+};

@@ -103,4 +103,75 @@ app.post('/api/movies', async (c) => {
   }
 });
 
+// Append these two new authentication endpoint routes inside backend-worker/src/index.ts
+
+// 1. REGISTER NEW CUSTOMER ACCOUNT ENDPOINT: /api/auth/register
+app.post('/api/auth/register', async (c) => {
+  const targetUrl = `${c.env.SUPABASE_URL}/auth/v1/signup`;
+  try {
+    const body = await c.req.json();
+    const { email, password, fullName } = body;
+
+    if (!email || !password) return c.json({ error: 'Email and password fields are required.' }, 400);
+
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'apikey': c.env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName || 'New Customer' } // Caught by our Postgres trigger!
+        }
+      }),
+    });
+
+    const data: any = await response.json();
+    if (!response.ok) return c.json({ error: data.msg || 'Registration failed.' }, response.status);
+
+    return c.json({ message: 'User registered successfully! Please check your email for confirmation.', user: data.user }, 201);
+  } catch (error: any) {
+    return c.json({ error: 'Authentication service failure', message: error.message }, 500);
+  }
+});
+
+// 2. USER LOGIN / TOKEN EXCHANGE ENDPOINT: /api/auth/login
+app.post('/api/auth/login', async (c) => {
+  const targetUrl = `${c.env.SUPABASE_URL}/auth/v1/token?grant_type=password`;
+  try {
+    const body = await c.req.json();
+    const { email, password } = body;
+
+    if (!email || !password) return c.json({ error: 'Email and password parameters are required.' }, 400);
+
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'apikey': c.env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data: any = await response.json();
+    if (!response.ok) return c.json({ error: data.error_description || 'Invalid login credentials.' }, response.status);
+
+    // Returns your cryptographically signed access_token (JWT) to persist on the app client!
+    return c.json({
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      user: {
+        id: data.user.id,
+        email: data.user.email,
+        fullName: data.user.user_metadata?.full_name
+      }
+    });
+  } catch (error: any) {
+    return c.json({ error: 'Login authentication runtime failure', message: error.message }, 500);
+  }
+});
+
 export default app;
