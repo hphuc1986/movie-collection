@@ -11,26 +11,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Download your source code files from GitHub
     - name: Checkout Source Code
       uses: actions/checkout@v4
 
-    # Step 2: Provision a clean Node.js container environment
     - name: Setup Node.js Environment
       uses: actions/setup-node@v4
       with:
-        node-version: '20' # Modern LTS Node execution framework
+        node-version: '20'
         cache: 'npm'
         cache-dependency-path: 'backend-worker/package-lock.json'
 
-    # Step 3: Install your serverless package modules
     - name: Install Dependencies
       run: |
         cd backend-worker
         npm ci
 
-    # Step 4: Verify your Hono.js TypeScript compiles with zero types errors
+    # FIXED STEP: Using Hono's native project verification validation command
     - name: Run TypeScript Type Checks
       run: |
         cd backend-worker
-        npm tsc -- --noEmit
+        npm run check
