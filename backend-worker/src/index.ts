@@ -8,7 +8,6 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-// Global permissive CORS configurations for frontend clients
 app.use('*', cors({
   origin: '*',
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -17,10 +16,10 @@ app.use('*', cors({
   maxAge: 600,
 }));
 
-// 1. GET ALL RECORDS ROUTE: /api/movies
+// 1. GET ALL PRODUCTS: /api/movies (Kept route path consistent for immediate testing)
 app.get('/api/movies', async (c) => {
-  // Directly targets your Supabase table using clean HTTP queries
-  const targetUrl = `${c.env.SUPABASE_URL}/rest/v1/Movie_Collection?select=*&order=Id.desc`;
+  // FIXED: Pointing directly to the new Products HTTP relation tier
+  const targetUrl = `${c.env.SUPABASE_URL}/rest/v1/Products?select=*&order=Id.desc`;
 
   try {
     const response = await fetch(targetUrl, {
@@ -32,44 +31,48 @@ app.get('/api/movies', async (c) => {
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`Supabase returned status code: ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`Supabase error: ${response.status}`);
+    const rawProducts: any = await response.json();
 
-    const rawMovies: any = await response.json();
-
-    // Map your database headers smoothly to the lowercase attributes React expects
-    const formattedMovies = rawMovies.map((m: any) => ({
-      id: m.Id,
-      title: m.Title,
-      releaseYear: m.ReleaseYear,
-      format: m.Format,
-      rating: m.Rating,
-      createdAt: m.CreatedAt
+    // FIXED: Maps your expanded production columns safely back into camelCase
+    const formattedProducts = rawProducts.map((p: any) => ({
+      id: p.Id,
+      title: p.Title,
+      releaseYear: p.ReleaseYear,
+      format: p.Format,
+      price: parseFloat(p.Price),
+      stockQuantity: p.StockQuantity,
+      posterUrl: p.PosterUrl,
+      rating: p.Rating,
+      description: p.Description,
+      createdAt: p.CreatedAt
     }));
 
-    return c.json(formattedMovies);
+    return c.json(formattedProducts);
   } catch (error: any) {
-    return c.json({ error: 'Database HTTP transaction failure', message: error.message }, 500);
+    return c.json({ error: 'Database transaction failure', message: error.message }, 500);
   }
 });
 
-// 2. POST NEW MOVIE ROUTE: /api/movies
+// 2. POST NEW PRODUCT TO CATALOG: /api/movies
 app.post('/api/movies', async (c) => {
-  const targetUrl = `${c.env.SUPABASE_URL}/rest/v1/Movie_Collection`;
+  const targetUrl = `${c.env.SUPABASE_URL}/rest/v1/Products`;
 
   try {
     const body = await c.req.json();
-    const { title, releaseYear, format, rating } = body;
+    const { title, releaseYear, format, price, stockQuantity, posterUrl, rating, description } = body;
 
-    if (!title) return c.json({ error: 'Movie title parameter is required.' }, 400);
+    if (!title) return c.json({ error: 'Product title is required.' }, 400);
 
-    // Map the incoming React variables to your capitalized database columns
     const dbPayload = {
       Title: title,
       ReleaseYear: releaseYear || null,
       Format: format || 'Digital',
+      Price: price || 14.99,
+      StockQuantity: stockQuantity || 100,
+      PosterUrl: posterUrl || null,
       Rating: rating || null,
+      Description: description || null,
       CreatedAt: new Date().toISOString()
     };
 
@@ -79,29 +82,24 @@ app.post('/api/movies', async (c) => {
         'apikey': c.env.SUPABASE_ANON_KEY,
         'Authorization': `Bearer ${c.env.SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json',
-        'Prefer': 'return=representation' // Instructs Supabase to return the newly created row data
+        'Prefer': 'return=representation'
       },
       body: JSON.stringify(dbPayload)
     });
 
-    if (!response.ok) {
-      throw new Error(`Supabase insert returned error status: ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`Insert failed: ${response.status}`);
+    const [newProduct]: any = await response.json();
 
-    const [newMovie]: any = await response.json();
-
-    const formattedMovie = {
-      id: newMovie.Id,
-      title: newMovie.Title,
-      releaseYear: newMovie.ReleaseYear,
-      format: newMovie.Format,
-      rating: newMovie.Rating,
-      createdAt: newMovie.CreatedAt
+    const formattedProduct = {
+      id: newProduct.Id,
+      title: newProduct.Title,
+      price: parseFloat(newProduct.Price),
+      stockQuantity: newProduct.StockQuantity
     };
 
-    return c.json(formattedMovie, 201);
+    return c.json(formattedProduct, 201);
   } catch (error: any) {
-    return c.json({ error: 'Failed to save movie record entry via HTTP.', message: error.message }, 500);
+    return c.json({ error: 'Failed to save product via HTTP.', message: error.message }, 500);
   }
 });
 
