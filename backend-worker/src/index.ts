@@ -2,15 +2,12 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import postgres from 'postgres';
 
-// Define the runtime environment schema parameters for your environment configurations
 type Bindings = {
   DATABASE_URL: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-// 1. Enable Global CORS Middleware so your React Cloudflare Page can read this worker data
-// EXACT FIX: Configure global permissive cors headers for Hono framework runtimes
 app.use('*', cors({
   origin: '*',
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -19,19 +16,27 @@ app.use('*', cors({
   maxAge: 600,
 }));
 
-// Helper utility to provision an isolated Postgres transaction client stream instance per invocation request
+// 🧳 GLOBAL STATE HOLDER: Keeps your database client connection alive between invocations
+let sqlInstance: any = null;
+
 const getDbClient = (databaseUrl: string) => {
-  return postgres(databaseUrl, { ssl: 'require' });
+  // FIXED: Only create a new connection pool if one does not already exist!
+  if (!sqlInstance) {
+    sqlInstance = postgres(databaseUrl, { 
+      ssl: 'require',
+      max: 1, // Restricts your serverless instance to a single reusable connection slot
+      idle_timeout: 20 // Automatically drops idle sockets cleanly
+    });
+  }
+  return sqlInstance;
 };
 
 // 2. GET ALL RECORDS ROUTE: /api/movies
 app.get('/api/movies', async (c) => {
   const sql = getDbClient(c.env.DATABASE_URL);
   try {
-    // FIXED: Ensured the result array variable aligns perfectly with the mapping loop below
     const rawMovies = await sql`SELECT * FROM "Movie_Collection" ORDER BY "Id" DESC`;
     
-    // FIXED: Added an explicit row parameter type constraint (any) to bypass strict compilation loops
     const formattedMovies = rawMovies.map((m: any) => ({
       id: m.Id,
       title: m.Title,
@@ -44,9 +49,9 @@ app.get('/api/movies', async (c) => {
     return c.json(formattedMovies);
   } catch (error: any) {
     return c.json({ error: 'Database execution failure', message: error.message }, 500);
-  } finally {
-    await sql.end();
   }
+  // ❌ REMOVED: await sql.end() 
+  // Never close the pool here! Letting it persist lets the next request reuse the connection instantly.
 });
 
 // 3. POST NEW MOVIE ROUTE: /api/movies
@@ -64,7 +69,6 @@ app.post('/api/movies', async (c) => {
       RETURNING *
     `;
 
-    // FIXED: Ensured explicit database property mapping matching uppercase tables
     const formattedMovie = {
       id: newMovie.Id,
       title: newMovie.Title,
@@ -77,8 +81,6 @@ app.post('/api/movies', async (c) => {
     return c.json(formattedMovie, 201);
   } catch (error: any) {
     return c.json({ error: 'Failed to catalog record entry.', message: error.message }, 500);
-  } finally {
-    await sql.end();
   }
 });
 
