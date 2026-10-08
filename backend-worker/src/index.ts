@@ -30,6 +30,17 @@ app.get('/api/movies', async (c) => {
   try {
     // Queries your explicit Supabase table name we mapped out earlier!
     const movies = await sql`SELECT * FROM "Movie_Collection" ORDER BY "Id" DESC`;
+
+// EXACT FIX: Map capitalized Supabase columns directly to the camelCase variables React expects!
+    const formattedMovies = rawMovies.map(m => ({
+      id: m.Id,
+      title: m.Title,
+      releaseYear: m.ReleaseYear,
+      format: m.Format,
+      rating: m.Rating,
+      createdAt: m.CreatedAt
+    }));
+
     return c.json(movies);
   } catch (error: any) {
     return c.json({ error: 'Database execution failure', message: error.message }, 500);
@@ -53,7 +64,17 @@ app.post('/api/movies', async (c) => {
       RETURNING *
     `;
 
-    return c.json(newMovie, 201);
+    // Map the returned row to lowercase for React
+    const formattedMovie = {
+      id: newMovie.Id,
+      title: newMovie.Title,
+      releaseYear: newMovie.ReleaseYear,
+      format: newMovie.Format,
+      rating: newMovie.Rating,
+      createdAt: newMovie.CreatedAt
+    };
+
+    return c.json(formattedMovie, 201);
   } catch (error: any) {
     return c.json({ error: 'Failed to catalog record entry.', message: error.message }, 500);
   } finally {
