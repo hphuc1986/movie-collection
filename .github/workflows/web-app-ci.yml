@@ -33,4 +33,4 @@ jobs:
     - name: Run TypeScript Type Checks
       run: |
         cd backend-worker
-        npm run tsc -- --noEmit
+        npm tsc -- --noEmit
