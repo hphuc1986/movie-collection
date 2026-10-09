@@ -101,7 +101,7 @@ function App() {
         backgroundColor: "#121212",
         color: "#fff",
         minHeight: "100vh",
-        padding: "2rem",
+        padding: "clamp(1rem, 4vw, 2rem)",
         boxSizing: "border-box",
         position: "relative",
         overflowX: "hidden",

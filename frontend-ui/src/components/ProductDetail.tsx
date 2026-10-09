@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import "./ProductDetail.css";
 
 interface ProductDetailProps {
   product: any;
@@ -36,7 +37,10 @@ export function ProductDetail({
   };
 
   return (
-    <div style={{ animation: "fadeIn 0.25s ease-out" }}>
+    <div
+      className="product-detail"
+      style={{ animation: "fadeIn 0.25s ease-out" }}
+    >
       {/* Back to Catalog Breadcrumb Link */}
       <button
         onClick={onBack}
@@ -58,15 +62,16 @@ export function ProductDetail({
       </button>
 
       <div
+        className="product-detail-layout"
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(280px, 360px) 1fr",
           gap: "3rem",
           alignItems: "start",
         }}
       >
         {/* LEFT COLUMN: HIGH-RES COVER FRAMING CONTAINER */}
         <div
+          className="product-detail-poster"
           style={{
             borderRadius: "6px",
             overflow: "hidden",
@@ -101,6 +106,7 @@ export function ProductDetail({
 
         {/* RIGHT COLUMN: RICH PRODUCTION METRICS SPECIFICATIONS PANEL */}
         <div
+          className="product-detail-information"
           style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}
         >
           <div>
@@ -120,8 +126,8 @@ export function ProductDetail({
               {product.format || "4K Ultra HD"}
             </span>
             <h2
+              className="product-detail-title"
               style={{
-                fontSize: "2.2rem",
                 fontWeight: "bold",
                 margin: "0.75rem 0 0.25rem 0",
                 color: "#fff",
@@ -144,7 +150,7 @@ export function ProductDetail({
               margin: "0.1rem 0",
             }}
           >
-            \${(product.price || 14.99).toFixed(2)}
+            ${(product.price || 14.99).toFixed(2)}
           </div>
 
           <div
@@ -278,9 +284,9 @@ export function ProductDetail({
             </h4>
 
             <div
+              className="product-detail-specs"
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
                 gap: "0.75rem",
                 backgroundColor: "#181818",
                 padding: "1.25rem",
@@ -426,6 +432,7 @@ export function ProductDetail({
           </div>
 
           <button
+            className="product-detail-add-button"
             onClick={() => !isOutOfStock && onAddToCart(product, quantity)}
             disabled={isOutOfStock}
             style={{
@@ -440,11 +447,10 @@ export function ProductDetail({
               textTransform: "uppercase",
               letterSpacing: "0.5px",
               marginTop: "1rem",
-              width: "280px",
               transition: "background-color 0.2s",
             }}
           >
-            {isOutOfStock ? "🚫 Out of Stock" : "🛒 Add to Basket"}
+            {isOutOfStock ? "🚫 Out of Stock" : "🛒 Add to Cart"}
           </button>
         </div>
       </div>
