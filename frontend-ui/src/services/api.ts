@@ -33,3 +33,8 @@ export const loginUser = async (email: string, password: string) => {
   const response = await api.post('/auth/login', { email, password });
   return response.data; // Contains your critical token payload
 };
+
+export const registerGuestUser = async (fullName: string) => {
+  const response = await api.post('/auth/guest', { fullName });
+  return response.data;
+};

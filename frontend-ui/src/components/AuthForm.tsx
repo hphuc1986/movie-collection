@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { loginUser, registerUser } from "../services/api";
+import { loginUser, registerUser, registerGuestUser } from "../services/api";
 
 interface AuthFormProps {
   onAuthSuccess: (user: any, token: string) => void;
@@ -204,6 +204,40 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
           }}
         >
           {loading ? "Processing..." : isLogin ? "Sign In" : "Sign Up"}
+        </button>
+
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              setLoading(true);
+              const guestName = fullName.trim() || "Guest Customer";
+              await registerGuestUser(guestName);
+              setMessage({
+                text: `Guest account initialized successfully! You can sign in using an email layout now.`,
+                isError: false,
+              });
+            } catch (err: any) {
+              setMessage({
+                text: "Guest allocation limit check error.",
+                isError: true,
+              });
+            } finally {
+              setLoading(false);
+            }
+          }}
+          style={{
+            padding: "0.75rem",
+            backgroundColor: "#333",
+            color: "#fff",
+            border: "1px solid #555",
+            borderRadius: "4px",
+            fontWeight: "bold",
+            cursor: "pointer",
+            marginTop: "0.5rem",
+          }}
+        >
+          🛒 Fast Guest Checkout (Bypass Email Limits)
         </button>
       </form>
 

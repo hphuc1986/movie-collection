@@ -103,12 +103,14 @@ app.post('/api/movies', async (c) => {
   }
 });
 
+// UPDATE THIS ENDPOINT INSIDE backend-worker/src/index.ts
+
 // 1. REGISTER NEW CUSTOMER ACCOUNT ENDPOINT: /api/auth/register
 app.post('/api/auth/register', async (c) => {
   const targetUrl = `${c.env.SUPABASE_URL}/auth/v1/signup`;
   try {
     const body = await c.req.json();
-    const { email, password, fullName } = body;
+    const { email, password, fullName } = body; // Destructures the variable from React
 
     if (!email || !password) return c.json({ error: 'Email and password fields are required.' }, 400);
 
@@ -122,23 +124,20 @@ app.post('/api/auth/register', async (c) => {
         email,
         password,
         options: {
-          data: { full_name: fullName || 'New Customer' }
+          data: { full_name: fullName || 'Anonymous Buyer' } // FIXED: Enforces lowercase full_name to match your Postgres trigger!
         }
       }),
     });
 
     const data: any = await response.json();
-    
-    // FIXED: Typecasted response.status as a explicit status literal number code definition
-    if (!response.ok) {
-      return c.json({ error: data.msg || 'Registration failed.' }, response.status as any);
-    }
+    if (!response.ok) return c.json({ error: data.msg || 'Registration failed.' }, response.status as any);
 
     return c.json({ message: 'User registered successfully!', user: data.user }, 201);
   } catch (error: any) {
     return c.json({ error: 'Authentication service failure', message: error.message }, 500);
   }
 });
+
 
 // 2. USER LOGIN / TOKEN EXCHANGE ENDPOINT: /api/auth/login
 app.post('/api/auth/login', async (c) => {
@@ -178,5 +177,82 @@ app.post('/api/auth/login', async (c) => {
     return c.json({ error: 'Login authentication runtime failure', message: error.message }, 500);
   }
 });
+
+// Append this explicit update route inside backend-worker/src/index.ts
+
+// 3. UPDATE USER PROFILE (SHIPPING/BILLING DETAILS): PUT /api/user/profile
+app.put('/api/user/profile', async (c) => {
+  const targetUrl = `${c.env.SUPABASE_URL}/rest/v1/Users`;
+  try {
+    const authHeader = c.req.header('Authorization');
+    const body = await c.req.json();
+    const { userId, shippingAddress, billingAddress, fullName } = body;
+
+    if (!userId) return c.json({ error: 'User unique ID parameter is required.' }, 400);
+    if (!authHeader) return c.json({ error: 'Missing active user access token validation.' }, 401);
+
+    // Explicitly target your public "Users" table via Supabase HTTP PostgREST API
+    const response = await fetch(`${targetUrl}?Id=eq.${userId}`, {
+      method: 'PATCH', // PATCH performs a targeted column edit
+      headers: {
+        'apikey': c.env.SUPABASE_ANON_KEY,
+        'Authorization': authHeader, // Assures the request is authenticated
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        ShippingAddress: shippingAddress,
+        BillingAddress: billingAddress,
+        FullName: fullName
+      })
+    });
+
+    if (!response.ok) throw new Error(`Supabase profile patch failed with status: ${response.status}`);
+    const data: any = await response.json();
+
+    return c.json({ message: 'User profile address configurations updated successfully!', profile: data[0] });
+  } catch (error: any) {
+    return c.json({ error: 'Profile patch processing failure', message: error.message }, 500);
+  }
+});
+
+// Add this to backend-worker/src/index.ts
+
+// 3. ANONYMOUS GUEST REGISTRATION BYPASSER: POST /api/auth/guest
+app.post('/api/auth/guest', async (c) => {
+  const targetUrl = `${c.env.SUPABASE_URL}/auth/v1/signup`;
+  try {
+    const body = await c.req.json();
+    const { fullName } = body;
+
+    // Generate an automatic random anonymous email that satisfies Supabase requirements
+    const guestId = Math.floor(Math.random() * 100000);
+    const guestEmail = `guest_buyer_${guestId}@cinestore.anon`;
+    const guestPassword = `SecureGuestPassword123!_${guestId}`;
+
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'apikey': c.env.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: guestEmail,
+        password: guestPassword,
+        options: {
+          data: { fullName: fullName || 'Guest Customer' } // Caught smoothly by our multi-case trigger!
+        }
+      }),
+    });
+
+    const data: any = await response.json();
+    if (!response.ok) return c.json({ error: data.msg || 'Guest initialization failed.' }, response.status as any);
+
+    return c.json({ message: 'Guest session generated!', user: data.user }, 201);
+  } catch (error: any) {
+    return c.json({ error: 'Guest authentication service failure', message: error.message }, 500);
+  }
+});
+
 
 export default app;
