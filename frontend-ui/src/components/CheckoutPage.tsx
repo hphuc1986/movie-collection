@@ -102,10 +102,20 @@ export function CheckoutPage({
       setOrder(result);
       onOrderPlaced();
     } catch (requestError: any) {
+      const status = requestError.response?.status;
+      const responseData = requestError.response?.data;
+      const serverMessage =
+        typeof responseData === "string"
+          ? undefined
+          : responseData?.message || responseData?.error;
       setError(
-        requestError.response?.data?.message ||
-          requestError.response?.data?.error ||
-          "We couldn't save this test order. Please try again.",
+        status === 404
+          ? "The checkout service is not deployed yet. Deploy the updated backend Worker, then try again."
+          : status === 503
+            ? serverMessage ||
+              "The checkout service needs its Supabase service-role secret configured."
+            : serverMessage ||
+              "We couldn't save this test order. Please try again.",
       );
     } finally {
       setSubmitting(false);
