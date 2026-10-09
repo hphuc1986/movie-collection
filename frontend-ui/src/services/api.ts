@@ -12,6 +12,7 @@ export interface Movie {
 // Points directly to your secure .NET local server port we verified earlier
 const api = axios.create({
   baseURL: 'https://backend-worker.hphuc86.workers.dev/api',
+  //baseURL: 'http://localhost:8787',
   headers: {
     'Content-Type': 'application/json',
   },

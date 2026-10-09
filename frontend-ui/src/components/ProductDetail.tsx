@@ -1,10 +1,9 @@
-import React from "react";
-import { type Movie } from "../services/api";
+import React, { useState } from "react";
 
 interface ProductDetailProps {
   product: any;
   onBack: () => void;
-  onAddToCart: (product: any) => void;
+  onAddToCart: (product: any, quantity: number) => void; // Expanded to support variable quantity inputs!
 }
 
 export function ProductDetail({
@@ -13,6 +12,28 @@ export function ProductDetail({
   onAddToCart,
 }: ProductDetailProps) {
   const isOutOfStock = product.stockQuantity <= 0;
+
+  // Interactive Local Item Quantity Counter Hook
+  const [quantity, setQuantity] = useState<number>(1);
+
+  const incrementQty = () => {
+    if (quantity < (product.stockQuantity || 99))
+      setQuantity((prev) => prev + 1);
+  };
+
+  const decrementQty = () => {
+    if (quantity > 1) setQuantity((prev) => prev - 1);
+  };
+
+  // Helper format module to make ISO timestamp string arrays clean and legible for users
+  const formatReleaseDate = (dateString: string) => {
+    if (!dateString) return "N/A";
+    try {
+      return dateString.split("T")[0];
+    } catch {
+      return dateString;
+    }
+  };
 
   return (
     <div style={{ animation: "fadeIn 0.25s ease-out" }}>
@@ -30,6 +51,7 @@ export function ProductDetail({
           alignItems: "center",
           gap: "0.25rem",
           padding: 0,
+          fontWeight: "bold",
         }}
       >
         ← Back to Catalog Products
@@ -43,7 +65,7 @@ export function ProductDetail({
           alignItems: "start",
         }}
       >
-        {/* Left Column: High-Res Media Poster Art Frame */}
+        {/* LEFT COLUMN: HIGH-RES COVER FRAMING CONTAINER */}
         <div
           style={{
             borderRadius: "6px",
@@ -72,12 +94,12 @@ export function ProductDetail({
                 fontWeight: "bold",
               }}
             >
-              🎬 POSTER ART FRAME
+              🎬 POSTER CONTAINER
             </div>
           )}
         </div>
 
-        {/* Right Column: Complete E-Commerce Inventory Specifications Data */}
+        {/* RIGHT COLUMN: RICH PRODUCTION METRICS SPECIFICATIONS PANEL */}
         <div
           style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}
         >
@@ -108,8 +130,9 @@ export function ProductDetail({
             >
               {product.title}
             </h2>
-            <p style={{ color: "#00bc8c", fontSize: "0.9rem", margin: 0 }}>
-              Released Catalog Tracking: {product.releaseYear || "N/A"}
+            <p style={{ color: "#aaa", fontSize: "0.9rem", margin: 0 }}>
+              Released Catalog Tracking Year:{" "}
+              <strong>{product.releaseYear || "N/A"}</strong>
             </p>
           </div>
 
@@ -118,10 +141,10 @@ export function ProductDetail({
               fontSize: "2rem",
               fontWeight: "bold",
               color: "#fff",
-              margin: "0.25rem 0",
+              margin: "0.1rem 0",
             }}
           >
-            ${(product.price || 14.99).toFixed(2)}
+            \${(product.price || 14.99).toFixed(2)}
           </div>
 
           <div
@@ -132,9 +155,88 @@ export function ProductDetail({
             }}
           >
             {!isOutOfStock
-              ? "🟢 In Stock - Ready to Ship"
+              ? "🟢 In Stock - Usually ships within 24 hours"
               : "🔴 Sorry! This product is currently out of stock"}
           </div>
+
+          {/* QUANTITY CONTROL INCREMENT MATRIX */}
+          {!isOutOfStock && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "1rem",
+                borderTop: "1px solid #333",
+                paddingTop: "1.25rem",
+                marginBottom: "0.5rem",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.85rem",
+                  color: "#aaa",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Quantity
+              </span>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  border: "1px solid #444",
+                  borderRadius: "4px",
+                  backgroundColor: "#2d2d2d",
+                  overflow: "hidden",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={decrementQty}
+                  style={{
+                    border: "none",
+                    backgroundColor: "transparent",
+                    color: "#fff",
+                    width: "36px",
+                    height: "36px",
+                    cursor: "pointer",
+                    fontSize: "1.1rem",
+                    fontWeight: "bold",
+                  }}
+                >
+                  -
+                </button>
+                <div
+                  style={{
+                    width: "40px",
+                    textAlign: "center",
+                    fontSize: "0.95rem",
+                    fontWeight: "bold",
+                    color: "#fff",
+                  }}
+                >
+                  {quantity}
+                </div>
+                <button
+                  type="button"
+                  onClick={incrementQty}
+                  style={{
+                    border: "none",
+                    backgroundColor: "transparent",
+                    color: "#fff",
+                    width: "36px",
+                    height: "36px",
+                    cursor: "pointer",
+                    fontSize: "1.1rem",
+                    fontWeight: "bold",
+                  }}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          )}
 
           <div style={{ borderTop: "1px solid #333", paddingTop: "1.25rem" }}>
             <h4
@@ -157,63 +259,178 @@ export function ProductDetail({
               }}
             >
               {product.description ||
-                "A premium edition release selection. Full relational retail inventory specs and streaming configuration mappings are active for this product module block."}
+                "A highly sought cinematic catalog choice. Full structural specifications are mapped into this cloud metadata distribution entry point."}
             </p>
           </div>
 
-          <div
-            style={{
-              borderTop: "1px solid #333",
-              paddingTop: "1.25rem",
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "1rem",
-              backgroundColor: "#181818",
-              padding: "1rem",
-              borderRadius: "6px",
-              border: "1px solid #222",
-            }}
-          >
-            <div>
-              <span
-                style={{
-                  display: "block",
-                  fontSize: "0.75rem",
-                  color: "#777",
-                  textTransform: "uppercase",
-                  marginBottom: "0.2rem",
-                }}
-              >
-                Format Type
-              </span>
-              <strong style={{ fontSize: "0.9rem", color: "#ccc" }}>
-                {product.format}
-              </strong>
-            </div>
-            <div>
-              <span
-                style={{
-                  display: "block",
-                  fontSize: "0.75rem",
-                  color: "#777",
-                  textTransform: "uppercase",
-                  marginBottom: "0.2rem",
-                }}
-              >
-                Studio Distribution
-              </span>
-              <strong style={{ fontSize: "0.9rem", color: "#ccc" }}>
-                Well Go USA / Universal
-              </strong>
+          {/* COMPREHENSIVE SPECIFICATIONS METRIC TABLE GRID */}
+          <div style={{ borderTop: "1px solid #333", paddingTop: "1.25rem" }}>
+            <h4
+              style={{
+                margin: "0 0 0.75rem 0",
+                color: "#aaa",
+                textTransform: "uppercase",
+                fontSize: "0.8rem",
+                letterSpacing: "0.5px",
+              }}
+            >
+              Info Details:
+            </h4>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "0.75rem",
+                backgroundColor: "#181818",
+                padding: "1.25rem",
+                borderRadius: "6px",
+                border: "1px solid #222",
+                fontSize: "0.9rem",
+              }}
+            >
+              <div>
+                <span
+                  style={{
+                    color: "#777",
+                    display: "block",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Format Type:
+                </span>{" "}
+                <strong style={{ color: "#ccc" }}>
+                  {product.format || "UHD"}
+                </strong>
+              </div>
+              <div>
+                <span
+                  style={{
+                    color: "#777",
+                    display: "block",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Catalog No:
+                </span>{" "}
+                <strong style={{ color: "#ccc" }}>
+                  {product.catalogNo || "1000863251"}
+                </strong>
+              </div>
+              <div>
+                <span
+                  style={{
+                    color: "#777",
+                    display: "block",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  UPC Barcode:
+                </span>{" "}
+                <strong style={{ color: "#ccc" }}>
+                  {product.upc || "826663269147"}
+                </strong>
+              </div>
+              <div>
+                <span
+                  style={{
+                    color: "#777",
+                    display: "block",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Rating:
+                </span>{" "}
+                <strong style={{ color: "#ccc" }}>
+                  {product.rating ? `${product.rating}A` : "NR"}
+                </strong>
+              </div>
+              <div>
+                <span
+                  style={{
+                    color: "#777",
+                    display: "block",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Release Date:
+                </span>{" "}
+                <strong style={{ color: "#ccc" }}>
+                  {formatReleaseDate(product.releaseDate)}
+                </strong>
+              </div>
+              <div>
+                <span
+                  style={{
+                    color: "#777",
+                    display: "block",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Studio Description:
+                </span>{" "}
+                <strong style={{ color: "#ccc" }}>
+                  {product.studio || "Shout! Factory"}
+                </strong>
+              </div>
+              <div>
+                <span
+                  style={{
+                    color: "#777",
+                    display: "block",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Region Coding:
+                </span>{" "}
+                <strong style={{ color: "#ccc" }}>
+                  {product.region || "Region A"}
+                </strong>
+              </div>
+              <div>
+                <span
+                  style={{
+                    color: "#777",
+                    display: "block",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Running Time:
+                </span>{" "}
+                <strong style={{ color: "#ccc" }}>
+                  {product.runningTime ? `${product.runningTime} mins` : "N/A"}
+                </strong>
+              </div>
+              <div>
+                <span
+                  style={{
+                    color: "#777",
+                    display: "block",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Discs Counts:
+                </span>{" "}
+                <strong style={{ color: "#ccc" }}>{product.discs || 1}</strong>
+              </div>
             </div>
           </div>
 
           <button
-            onClick={() => !isOutOfStock && onAddToCart(product)}
+            onClick={() => !isOutOfStock && onAddToCart(product, quantity)}
             disabled={isOutOfStock}
             style={{
               padding: "0.9rem 2rem",
-              backgroundColor: isOutOfStock ? "#252525" : "#E50914",
+              backgroundColor: isOutOfStock ? "#252525" : "#00bc8c",
               color: isOutOfStock ? "#555" : "#fff",
               border: "none",
               borderRadius: "4px",
@@ -223,7 +440,7 @@ export function ProductDetail({
               textTransform: "uppercase",
               letterSpacing: "0.5px",
               marginTop: "1rem",
-              width: "260px",
+              width: "280px",
               transition: "background-color 0.2s",
             }}
           >
