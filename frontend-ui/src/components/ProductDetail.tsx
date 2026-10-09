@@ -78,7 +78,7 @@ export function ProductDetail({
           fontWeight: "bold",
         }}
       >
-        ← Back to Catalog Products
+        ← Back to Catalog
       </button>
 
       <div
@@ -179,7 +179,15 @@ export function ProductDetail({
             className={`product-detail-stock${isOutOfStock ? " is-out-of-stock" : ""}`}
           >
             <strong>{isOutOfStock ? "Out of stock" : "In stock"}</strong>
-            {!isOutOfStock && <span>Usually shipped within 24 hours</span>}
+            {!isOutOfStock && (
+              <>
+                <span>
+                  {product.stockQuantity} unit
+                  {product.stockQuantity === 1 ? "" : "s"} available
+                </span>
+                <span>Usually shipped within 24 hours</span>
+              </>
+            )}
           </div>
 
           {/* QUANTITY CONTROL INCREMENT MATRIX */}
@@ -346,11 +354,6 @@ export function ProductDetail({
             </div>
           </div>
 
-          {isOutOfStock && (
-            <button className="product-detail-add-button" disabled>
-              Out of stock
-            </button>
-          )}
         </div>
       </div>
     </div>
