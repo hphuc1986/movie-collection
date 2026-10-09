@@ -103,8 +103,6 @@ app.post('/api/movies', async (c) => {
   }
 });
 
-// Append these two new authentication endpoint routes inside backend-worker/src/index.ts
-
 // 1. REGISTER NEW CUSTOMER ACCOUNT ENDPOINT: /api/auth/register
 app.post('/api/auth/register', async (c) => {
   const targetUrl = `${c.env.SUPABASE_URL}/auth/v1/signup`;
@@ -124,15 +122,19 @@ app.post('/api/auth/register', async (c) => {
         email,
         password,
         options: {
-          data: { full_name: fullName || 'New Customer' } // Caught by our Postgres trigger!
+          data: { full_name: fullName || 'New Customer' }
         }
       }),
     });
 
     const data: any = await response.json();
-    if (!response.ok) return c.json({ error: data.msg || 'Registration failed.' }, response.status);
+    
+    // FIXED: Typecasted response.status as a explicit status literal number code definition
+    if (!response.ok) {
+      return c.json({ error: data.msg || 'Registration failed.' }, response.status as any);
+    }
 
-    return c.json({ message: 'User registered successfully! Please check your email for confirmation.', user: data.user }, 201);
+    return c.json({ message: 'User registered successfully!', user: data.user }, 201);
   } catch (error: any) {
     return c.json({ error: 'Authentication service failure', message: error.message }, 500);
   }
@@ -157,9 +159,12 @@ app.post('/api/auth/login', async (c) => {
     });
 
     const data: any = await response.json();
-    if (!response.ok) return c.json({ error: data.error_description || 'Invalid login credentials.' }, response.status);
+    
+    // FIXED: Typecasted response.status as a explicit status literal number code definition
+    if (!response.ok) {
+      return c.json({ error: data.error_description || 'Invalid login credentials.' }, response.status as any);
+    }
 
-    // Returns your cryptographically signed access_token (JWT) to persist on the app client!
     return c.json({
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
