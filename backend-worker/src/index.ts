@@ -227,7 +227,7 @@ app.post('/api/auth/guest', async (c) => {
 // 6. CREATE A TEST ORDER WITHOUT PROCESSING A PAYMENT
 app.post('/api/orders', async (c) => {
   try {
-    const { customerId, customerName, email, phone, shippingAddress, items, discountCode } =
+    const { customerName, email, phone, shippingAddress, items, discountCode } =
       await c.req.json();
 
     if (!c.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -262,10 +262,27 @@ app.post('/api/orders', async (c) => {
       return c.json({ error: 'Cart contains an invalid product or quantity.' }, 400);
     }
 
-    const customerUuid = typeof customerId === 'string' &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(customerId)
-      ? customerId
+    const authorization = c.req.header('Authorization');
+    const bearerToken = authorization?.startsWith('Bearer ')
+      ? authorization.slice(7)
       : null;
+    let authenticatedCustomerId: string | null = null;
+
+    if (bearerToken && !bearerToken.startsWith('guest-')) {
+      const authResponse = await fetch(`${c.env.SUPABASE_URL}/auth/v1/user`, {
+        headers: {
+          'apikey': c.env.SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${bearerToken}`,
+        },
+      });
+
+      if (!authResponse.ok) {
+        return c.json({ error: 'Your sign-in session has expired. Please sign in again.' }, 401);
+      }
+
+      const authUser: any = await authResponse.json();
+      authenticatedCustomerId = authUser.id;
+    }
 
     const response = await fetch(
       `${c.env.SUPABASE_URL}/rest/v1/rpc/create_test_order`,
@@ -277,7 +294,7 @@ app.post('/api/orders', async (c) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          p_customer_id: customerUuid,
+          p_customer_id: authenticatedCustomerId,
           p_customer_name: customerName.trim(),
           p_email: email.trim().toLowerCase(),
           p_phone: typeof phone === 'string' && phone.trim() ? phone.trim() : null,
@@ -302,6 +319,64 @@ app.post('/api/orders', async (c) => {
     return c.json(await response.json(), 201);
   } catch (error: any) {
     return c.json({ error: 'Could not create the test order.', message: error.message }, 500);
+  }
+});
+
+// 7. GET ORDER HISTORY FOR THE AUTHENTICATED CUSTOMER
+app.get('/api/orders', async (c) => {
+  const authorization = c.req.header('Authorization');
+  const bearerToken = authorization?.startsWith('Bearer ')
+    ? authorization.slice(7)
+    : null;
+
+  if (!bearerToken || bearerToken.startsWith('guest-')) {
+    return c.json({ error: 'Sign in with a customer account to view order history.' }, 401);
+  }
+
+  if (!c.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return c.json({
+      error: 'Order history is not configured.',
+      message: 'Set the SUPABASE_SERVICE_ROLE_KEY Worker secret.',
+    }, 503);
+  }
+
+  try {
+    const authResponse = await fetch(`${c.env.SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        'apikey': c.env.SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${bearerToken}`,
+      },
+    });
+
+    if (!authResponse.ok) {
+      return c.json({ error: 'Your sign-in session has expired. Please sign in again.' }, 401);
+    }
+
+    const authUser: any = await authResponse.json();
+    const query = new URLSearchParams({
+      select: 'Id,CustomerName,Email,Subtotal,DiscountCode,DiscountAmount,Total,PaymentStatus,OrderStatus,CreatedAt,OrderItems(Id,ProductId,ProductTitle,UnitPrice,Quantity,LineTotal)',
+      CustomerId: `eq.${authUser.id}`,
+      order: 'CreatedAt.desc',
+    });
+    const ordersResponse = await fetch(
+      `${c.env.SUPABASE_URL}/rest/v1/Orders?${query.toString()}`,
+      {
+        headers: {
+          'apikey': c.env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${c.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+      },
+    );
+
+    if (!ordersResponse.ok) {
+      const details = await ordersResponse.text();
+      console.error('Order history query failed:', ordersResponse.status, details);
+      return c.json({ error: 'Could not load order history.', message: details }, 502);
+    }
+
+    return c.json(await ordersResponse.json());
+  } catch (error: any) {
+    return c.json({ error: 'Could not load order history.', message: error.message }, 500);
   }
 });
 

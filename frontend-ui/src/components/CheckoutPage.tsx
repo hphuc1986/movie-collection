@@ -14,6 +14,7 @@ interface CheckoutCartItem {
 interface CheckoutPageProps {
   cart: CheckoutCartItem[];
   user: any;
+  accessToken: string | null;
   discountCode: string | null;
   onBack: (orderPlaced: boolean) => void;
   onOrderPlaced: () => void;
@@ -40,6 +41,7 @@ const currency = new Intl.NumberFormat("en-CA", {
 export function CheckoutPage({
   cart,
   user,
+  accessToken,
   discountCode,
   onBack,
   onOrderPlaced,
@@ -79,25 +81,29 @@ export function CheckoutPage({
     setError(null);
 
     try {
-      const result = await createTestOrder({
-        customerId: user?.id || null,
-        customerName: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim() || undefined,
-        shippingAddress: {
-          address1: form.address1.trim(),
-          address2: form.address2.trim() || undefined,
-          city: form.city.trim(),
-          region: form.region.trim(),
-          postalCode: form.postalCode.trim(),
-          country: form.country,
+      const result = await createTestOrder(
+        {
+          customerId: user?.id || null,
+          customerName:
+            `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim() || undefined,
+          shippingAddress: {
+            address1: form.address1.trim(),
+            address2: form.address2.trim() || undefined,
+            city: form.city.trim(),
+            region: form.region.trim(),
+            postalCode: form.postalCode.trim(),
+            country: form.country,
+          },
+          items: cart.map((item) => ({
+            productId: Number(item.product.id),
+            quantity: item.quantity,
+          })),
+          discountCode,
         },
-        items: cart.map((item) => ({
-          productId: Number(item.product.id),
-          quantity: item.quantity,
-        })),
-        discountCode,
-      });
+        accessToken,
+      );
 
       setOrder(result);
       onOrderPlaced();

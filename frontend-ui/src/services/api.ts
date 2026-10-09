@@ -62,10 +62,52 @@ export interface TestOrderResponse {
   createdAt: string;
 }
 
+export interface OrderHistoryItem {
+  id: number;
+  productId: number;
+  productTitle: string;
+  unitPrice: number;
+  quantity: number;
+  lineTotal: number;
+}
+
+export interface OrderHistoryEntry {
+  Id: string;
+  CustomerName: string;
+  Email: string;
+  Subtotal: number;
+  DiscountCode: string | null;
+  DiscountAmount: number;
+  Total: number;
+  PaymentStatus: string;
+  OrderStatus: string;
+  CreatedAt: string;
+  OrderItems: Array<{
+    Id: number;
+    ProductId: number;
+    ProductTitle: string;
+    UnitPrice: number;
+    Quantity: number;
+    LineTotal: number;
+  }>;
+}
+
 export const createTestOrder = async (
   order: TestOrderRequest,
+  accessToken?: string | null,
 ): Promise<TestOrderResponse> => {
-  const response = await api.post<TestOrderResponse>('/orders', order);
+  const response = await api.post<TestOrderResponse>('/orders', order, {
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+  });
+  return response.data;
+};
+
+export const getOrderHistory = async (
+  accessToken: string,
+): Promise<OrderHistoryEntry[]> => {
+  const response = await api.get<OrderHistoryEntry[]>('/orders', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
   return response.data;
 };
 

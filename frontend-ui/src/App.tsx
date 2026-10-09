@@ -3,6 +3,7 @@ import { getCoverImageUrl, getMovies, type Movie } from "./services/api";
 import { AuthForm } from "./components/AuthForm";
 import { CartSummary } from "./components/CartSummary";
 import { CheckoutPage } from "./components/CheckoutPage";
+import { OrderHistory } from "./components/OrderHistory";
 import { ProductDetail } from "./components/ProductDetail";
 import "./catalog.css";
 
@@ -20,6 +21,7 @@ function App() {
 
   // Identity Session Hooks
   const [user, setUser] = useState<any>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFormat, setSelectedFormat] = useState("All");
@@ -29,6 +31,7 @@ function App() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
   const [checkoutDiscountCode, setCheckoutDiscountCode] = useState<string | null>(null);
 
   const fetchCatalog = async () => {
@@ -52,6 +55,7 @@ function App() {
     const savedToken = localStorage.getItem("token");
     if (savedUser && savedToken) {
       setUser(JSON.parse(savedUser));
+      setAccessToken(savedToken);
     }
     fetchCatalog();
   }, []);
@@ -102,6 +106,7 @@ function App() {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     setUser(null);
+    setAccessToken(null);
     setCart([]);
     setIsCartOpen(false);
   };
@@ -224,7 +229,13 @@ function App() {
           </button>
 
           {user ? (
-            <div style={{ textAlign: "right" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "clamp(0.4rem, 2vw, 1rem)",
+              }}
+            >
               <span
                 style={{
                   marginRight: "1rem",
@@ -249,6 +260,27 @@ function App() {
               >
                 Logout
               </button>
+              {!String(user.email || "").endsWith("@cinestore.invalid") && (
+                <button
+                  onClick={() => {
+                    setIsOrderHistoryOpen(true);
+                    setIsCartOpen(false);
+                  }}
+                  style={{
+                    padding: "0.4rem 0.75rem",
+                    backgroundColor: "#222",
+                    color: "#fff",
+                    border: "1px solid #444",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontSize: "0.85rem",
+                    fontWeight: "bold",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Orders
+                </button>
+              )}
             </div>
           ) : (
             <button
@@ -300,6 +332,7 @@ function App() {
             <CheckoutPage
               cart={cart}
               user={user}
+              accessToken={accessToken}
               discountCode={checkoutDiscountCode}
               onBack={(orderPlaced) => {
                 setIsCheckoutOpen(false);
@@ -313,6 +346,11 @@ function App() {
                 setCart([]);
                 setCheckoutDiscountCode(null);
               }}
+            />
+          ) : isOrderHistoryOpen && accessToken ? (
+            <OrderHistory
+              accessToken={accessToken}
+              onBack={() => setIsOrderHistoryOpen(false)}
             />
           ) : selectedProduct ? (
             <ProductDetail
@@ -571,8 +609,9 @@ function App() {
               &times;
             </button>
             <AuthForm
-              onAuthSuccess={(u) => {
+              onAuthSuccess={(u, t) => {
                 setUser(u);
+                setAccessToken(t);
                 setShowAuthModal(false);
               }}
             />
