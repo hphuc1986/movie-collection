@@ -3,11 +3,23 @@ import { getCoverImageUrl, getMovies, type Movie } from "./services/api";
 import { AuthForm } from "./components/AuthForm";
 import { CartSummary } from "./components/CartSummary";
 import { ProductDetail } from "./components/ProductDetail";
+import "./catalog.css";
 
 interface CartItem {
   product: Movie;
   quantity: number;
 }
+
+const catalogCategories = [
+  "All formats",
+  "Steelbooks",
+  "4K",
+  "Blu-ray",
+  "DVD",
+  "Pre-order",
+  "New Release",
+  "Deals",
+];
 
 function App() {
   const [products, setProducts] = useState<any>();
@@ -18,6 +30,8 @@ function App() {
   const [user, setUser] = useState<any>(null);
   const [token, setToken] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFormat, setSelectedFormat] = useState("All formats");
 
   // UX Interaction State Controls
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
@@ -92,6 +106,50 @@ function App() {
   };
 
   const totalCartItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const catalogProducts = Array.isArray(products) ? products : [];
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredProducts = catalogProducts.filter((product: any) => {
+    const searchableText = [
+      product.title,
+      product.description,
+      product.format,
+      product.studio,
+      product.catalogNo,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    const normalizedFormat = String(product.format || "").toLowerCase();
+    const categoryText = `${searchableText} ${normalizedFormat}`;
+    const releaseDate = product.releaseDate
+      ? new Date(product.releaseDate).getTime()
+      : Number.NaN;
+    const matchesCategory = (() => {
+      switch (selectedFormat) {
+        case "Steelbooks":
+          return categoryText.includes("steelbook");
+        case "4K":
+          return /\b4k\b|uhd/.test(normalizedFormat);
+        case "Blu-ray":
+          return /blu[ -]?ray/.test(normalizedFormat);
+        case "DVD":
+          return /\bdvd\b/.test(normalizedFormat);
+        case "Pre-order":
+          return /pre[ -]?order/.test(categoryText);
+        case "New Release":
+          return (
+            Number.isFinite(releaseDate) &&
+            releaseDate >= Date.now() - 365 * 24 * 60 * 60 * 1000
+          );
+        case "Deals":
+          return Boolean(product.isDeal || product.deal || product.salePrice);
+        default:
+          return true;
+      }
+    })();
+
+    return matchesCategory && searchableText.includes(normalizedQuery);
+  });
 
   // Leave your cursor right here at the bottom and copy Part 2 immediately below!
   return (
@@ -123,7 +181,7 @@ function App() {
           onClick={() => setSelectedProduct(null)}
         >
           <h1 style={{ color: "#E50914", margin: 0, letterSpacing: "0.5px" }}>
-            🎬 CineStore
+            CineStore
           </h1>
         </div>
 
@@ -237,6 +295,40 @@ function App() {
             />
           ) : (
             <div>
+              <section
+                className="catalog-controls"
+                aria-label="Catalog search and filters"
+              >
+                <label className="catalog-search">
+                  <span className="catalog-search-icon" aria-hidden="true">
+                    ⌕
+                  </span>
+                  <span className="visually-hidden">Search movies</span>
+                  <input
+                    type="search"
+                    placeholder="Find a movie, format, or studio"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                  />
+                </label>
+                <div
+                  className="catalog-format-filters"
+                  role="group"
+                  aria-label="Filter movies by category"
+                >
+                  {catalogCategories.map((format) => (
+                    <button
+                      key={format}
+                      type="button"
+                      className={selectedFormat === format ? "is-active" : ""}
+                      aria-pressed={selectedFormat === format}
+                      onClick={() => setSelectedFormat(format)}
+                    >
+                      {format}
+                    </button>
+                  ))}
+                </div>
+              </section>
               <h2
                 style={{
                   fontSize: "1.3rem",
@@ -259,7 +351,7 @@ function App() {
                   gap: "2rem",
                 }}
               >
-                {products.map((product: any) => {
+                {filteredProducts.map((product: any) => {
                   const isOutOfStock = product.stockQuantity <= 0;
                   const frontCoverUrl = getCoverImageUrl(product.frontCover);
 
@@ -396,6 +488,11 @@ function App() {
                   );
                 })}
               </div>
+              {filteredProducts.length === 0 && (
+                <p className="catalog-empty-state">
+                  No titles match these filters. Try another search or format.
+                </p>
+              )}
             </div>
           )}
         </div>

@@ -285,45 +285,6 @@ export function ProductDetail({
                     textTransform: "uppercase",
                   }}
                 >
-                  Catalog No:
-                </span>{" "}
-                <strong>{product.catalogNo || "1000863251"}</strong>
-              </div>
-              <div>
-                <span
-                  style={{
-                    color: "#5b5865",
-                    display: "block",
-                    fontSize: "0.75rem",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  UPC Barcode:
-                </span>{" "}
-                <strong>{product.upc || "826663269147"}</strong>
-              </div>
-              <div>
-                <span
-                  style={{
-                    color: "#5b5865",
-                    display: "block",
-                    fontSize: "0.75rem",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Rating:
-                </span>{" "}
-                <strong>{product.rating ? `${product.rating}A` : "NR"}</strong>
-              </div>
-              <div>
-                <span
-                  style={{
-                    color: "#5b5865",
-                    display: "block",
-                    fontSize: "0.75rem",
-                    textTransform: "uppercase",
-                  }}
-                >
                   Release Date:
                 </span>{" "}
                 <strong>{formatReleaseDate(product.releaseDate)}</strong>
