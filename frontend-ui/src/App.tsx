@@ -18,7 +18,7 @@ function App() {
   const [token, setToken] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  // Checkout Control Hook
+  // Checkout Control Modal Hook
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
 
   const fetchCatalog = async () => {
@@ -69,7 +69,6 @@ function App() {
 
   const handleCheckoutIntent = () => {
     if (!user) {
-      // If user is not authenticated, open our login/guest checkout panel modal
       setShowAuthModal(true);
     } else {
       alert(
@@ -94,7 +93,7 @@ function App() {
         color: "#fff",
         minHeight: "100vh",
         padding: "2rem",
-        position: "relative",
+        boxSizing: "border-box",
       }}
     >
       {/* 1. APP HEADER */}
@@ -109,8 +108,12 @@ function App() {
         }}
       >
         <div>
-          <h1 style={{ color: "#E50914", margin: 0 }}>🎬 CineStore Hub</h1>
-          <p style={{ color: "#aaa", margin: "0.5rem 0 0" }}>
+          <h1 style={{ color: "#E50914", margin: 0, letterSpacing: "0.5px" }}>
+            🎬 CineStore Hub
+          </h1>
+          <p
+            style={{ color: "#aaa", margin: "0.5rem 0 0", fontSize: "0.9rem" }}
+          >
             Cross-Platform API-First Movie Store Ecosystem
           </p>
         </div>
@@ -135,6 +138,7 @@ function App() {
                 borderRadius: "4px",
                 cursor: "pointer",
                 fontSize: "0.85rem",
+                fontWeight: "bold",
               }}
             >
               Logout
@@ -152,6 +156,8 @@ function App() {
               cursor: "pointer",
               fontWeight: "bold",
               fontSize: "0.85rem",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
             }}
           >
             Sign In / Register
@@ -171,7 +177,7 @@ function App() {
         {/* LEFT COLUMN: PRODUCT CATALOG */}
         <div>
           {loading && (
-            <p style={{ color: "#007ACC" }}>
+            <p style={{ color: "#007ACC", fontWeight: "500" }}>
               🔄 Loading store showcase catalog arrays...
             </p>
           )}
@@ -183,6 +189,7 @@ function App() {
                 padding: "1rem",
                 borderRadius: "4px",
                 color: "#ffb3b3",
+                marginBottom: "1rem",
               }}
             >
               ⚠️ {error}
@@ -193,119 +200,165 @@ function App() {
             <div>
               <h2
                 style={{
-                  fontSize: "1.4rem",
+                  fontSize: "1.3rem",
                   marginTop: 0,
                   marginBottom: "1.5rem",
                   borderBottom: "2px solid #E50914",
                   paddingBottom: "0.5rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "1px",
+                  color: "#fff",
                 }}
               >
-                🎥 Available Movies & Media Products
+                4K New Releases & Catalog Items
               </h2>
+
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                  gap: "1.5rem",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                  gap: "2rem",
                 }}
               >
-                {products.map((product: any) => (
-                  <div
-                    key={product.id}
-                    style={{
-                      backgroundColor: "#1e1e1e",
-                      borderRadius: "8px",
-                      padding: "1.5rem",
-                      border: "1px solid #2d2d2d",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                      boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-                    }}
-                  >
-                    <div>
+                {products.map((product: any) => {
+                  const isOutOfStock = product.stockQuantity <= 0;
+
+                  return (
+                    <div
+                      key={product.id}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        backgroundColor: "transparent",
+                      }}
+                    >
+                      {/* POSTER CARD BOX FRAME */}
                       <div
                         style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "start",
-                          marginBottom: "0.5rem",
+                          width: "100%",
+                          height: "320px",
+                          borderRadius: "4px",
+                          overflow: "hidden",
+                          backgroundColor: "#1e1e1e",
+                          position: "relative",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.6)",
+                          marginBottom: "0.75rem",
+                          border: "1px solid #282828",
                         }}
                       >
-                        <h3
-                          style={{
-                            margin: 0,
-                            color: "#fff",
-                            fontSize: "1.15rem",
-                          }}
-                        >
-                          {product.title}
-                        </h3>
+                        {product.posterUrl ? (
+                          <img
+                            src={product.posterUrl}
+                            alt={product.title}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              height: "100%",
+                              color: "#555",
+                              fontSize: "0.85rem",
+                              fontWeight: "bold",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            🎬 Movie Poster
+                          </div>
+                        )}
+
+                        {/* Format Badging */}
                         <span
                           style={{
-                            backgroundColor: "#333",
-                            padding: "0.2rem 0.5rem",
-                            borderRadius: "4px",
-                            fontSize: "0.75rem",
-                            color: "#aaa",
+                            position: "absolute",
+                            top: "8px",
+                            left: "8px",
+                            backgroundColor: "rgba(0,0,0,0.85)",
+                            color: "#fff",
+                            padding: "0.25rem 0.5rem",
+                            borderRadius: "2px",
+                            fontSize: "0.65rem",
                             fontWeight: "bold",
+                            border: "1px solid #333",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
                           }}
                         >
                           {product.format}
                         </span>
                       </div>
-                      <p
+
+                      {/* TEXT INFO HIERARCHY */}
+                      <div
                         style={{
-                          color: "#aaa",
-                          fontSize: "0.85rem",
-                          margin: "0 0 1rem 0",
-                          lineHeight: "1.4",
-                          height: "40px",
-                          overflow: "hidden",
+                          flex: 1,
+                          padding: "0 0.25rem",
+                          marginBottom: "0.75rem",
                         }}
                       >
-                        {product.description ||
-                          "No movie description listed in catalog yet."}
-                      </p>
-                      <span style={{ fontSize: "0.85rem", color: "#888" }}>
-                        📅 Release: {product.releaseYear || "N/A"}
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        marginTop: "1.5rem",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "1.3rem",
-                          fontWeight: "bold",
-                          color: "#ffc107",
-                        }}
-                      >
-                        ${(product.price || 14.99).toFixed(2)}
-                      </span>
+                        <h3
+                          style={{
+                            margin: "0 0 0.25rem 0",
+                            color: "#fff",
+                            fontSize: "1rem",
+                            fontWeight: "600",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {product.title}
+                        </h3>
+                        <p
+                          style={{
+                            margin: "0 0 0.5rem 0",
+                            color: "#777",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          Release Year: {product.releaseYear || "N/A"}
+                        </p>
+                        <div
+                          style={{
+                            fontSize: "1.2rem",
+                            fontWeight: "bold",
+                            color: "#ffc107",
+                          }}
+                        >
+                          ${(product.price || 14.99).toFixed(2)}
+                        </div>
+                      </div>
+
+                      {/* FULL WIDTH TRANSACTION ACTION BUTTON */}
                       <button
-                        onClick={() => addToCart(product)}
+                        onClick={() => !isOutOfStock && addToCart(product)}
+                        disabled={isOutOfStock}
                         style={{
-                          padding: "0.5rem 1rem",
-                          backgroundColor: "#E50914",
-                          color: "#fff",
-                          border: "none",
+                          width: "100%",
+                          padding: "0.65rem",
+                          backgroundColor: isOutOfStock ? "#252525" : "#E50914",
+                          color: isOutOfStock ? "#555" : "#fff",
+                          border: isOutOfStock ? "1px solid #333" : "none",
                           borderRadius: "4px",
                           fontWeight: "bold",
-                          cursor: "pointer",
                           fontSize: "0.85rem",
+                          cursor: isOutOfStock ? "not-allowed" : "pointer",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                          transition: "background-color 0.2s, color 0.2s",
                         }}
                       >
-                        Add to Cart
+                        {isOutOfStock ? "🚫 Sold Out" : "🛒 Add to Cart"}
                       </button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -319,7 +372,7 @@ function App() {
         />
       </div>
 
-      {/* 3. POPUP MODAL AUTH FORM GUARD */}
+      {/* 3. POPUP MODAL AUTH FORM GUARD LAYER */}
       {showAuthModal && (
         <div
           style={{
@@ -339,17 +392,16 @@ function App() {
           <div
             style={{ position: "relative", width: "100%", maxWidth: "420px" }}
           >
-            {/* Close Modal Overlay Button */}
             <button
               onClick={() => setShowAuthModal(false)}
               style={{
                 position: "absolute",
-                top: "10px",
-                right: "15px",
+                top: "12px",
+                right: "18px",
                 background: "none",
                 border: "none",
                 color: "#aaa",
-                fontSize: "1.5rem",
+                fontSize: "1.6rem",
                 cursor: "pointer",
                 zIndex: 1010,
               }}

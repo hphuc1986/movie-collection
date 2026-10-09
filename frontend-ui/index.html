@@ -2,9 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend-ui</title>
+    <!-- FIXED: Updated browser tab caption text asset -->
+    <title>Movie Store</title>
+    
+    <style>
+      /* FIXED: Strips out the default browser 8px margin spacing and padding variables */
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background-color: #121212; /* Matches your dashboard background precisely */
+        overflow-x: hidden;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
