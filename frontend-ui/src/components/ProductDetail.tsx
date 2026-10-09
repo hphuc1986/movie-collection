@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { getCoverImageUrl } from "../services/api";
 import "./ProductDetail.css";
 

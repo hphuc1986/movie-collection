@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { getCoverImageUrl } from "../services/api";
+import "./CartSummary.css";
 
 interface CartItem {
   product: any;
@@ -8,10 +10,16 @@ interface CartItem {
 interface CartSummaryProps {
   cart: CartItem[];
   onRemove: (id: number) => void;
-  onCheckout: () => void; // 👈 ADD THIS PROP FIELD
+  onQuantityChange: (id: number, quantity: number) => void;
+  onCheckout: (discountCode: string | null) => void;
 }
 
-export function CartSummary({ cart, onRemove, onCheckout }: CartSummaryProps) {
+export function CartSummary({
+  cart,
+  onRemove,
+  onQuantityChange,
+  onCheckout,
+}: CartSummaryProps) {
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{
     code: string;
@@ -39,198 +47,119 @@ export function CartSummary({ cart, onRemove, onCheckout }: CartSummaryProps) {
   const grandTotal = subtotal - discountAmount;
 
   return (
-    <div
-      style={{
-        backgroundColor: "#1e1e1e",
-        padding: "1.5rem",
-        borderRadius: "8px",
-        border: "1px solid #2d2d2d",
-        boxShadow: "0 6px 12px rgba(0,0,0,0.3)",
-      }}
-    >
-      <h2
-        style={{
-          marginTop: 0,
-          fontSize: "1.25rem",
-          color: "#E50914",
-          borderBottom: "1px solid #333",
-          paddingBottom: "0.5rem",
-          marginBottom: "1rem",
-        }}
-      >
-        🛒 Shopping Cart
-      </h2>
-
+    <div className="cart-summary">
       {cart.length === 0 ? (
-        <p
-          style={{
-            color: "#aaa",
-            fontSize: "0.9rem",
-            textAlign: "center",
-            padding: "2rem 0",
-          }}
-        >
-          Your cart is empty. Add movies to get started!
-        </p>
+        <div className="cart-empty-state">
+          <p>Your cart is empty.</p>
+          <span>Add a title to get started.</span>
+        </div>
       ) : (
-        <div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.75rem",
-              marginBottom: "1.5rem",
-              maxHeight: "250px",
-              overflowY: "auto",
-            }}
-          >
+        <>
+          <div className="cart-items">
             {cart.map((item) => (
-              <div
-                key={item.product.id}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  fontSize: "0.9rem",
-                  backgroundColor: "#2d2d2d",
-                  padding: "0.5rem",
-                  borderRadius: "4px",
-                }}
-              >
-                <div style={{ maxWidth: "65%" }}>
-                  <div
-                    style={{
-                      fontWeight: "bold",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {item.product.title}
+              <article className="cart-item" key={item.product.id}>
+                <div className="cart-item-image">
+                  {getCoverImageUrl(item.product.frontCover) ? (
+                    <img
+                      src={getCoverImageUrl(item.product.frontCover)}
+                      alt={item.product.title}
+                    />
+                  ) : (
+                    <span aria-hidden="true">No cover</span>
+                  )}
+                </div>
+                <div className="cart-item-content">
+                  <div className="cart-item-heading">
+                    <h3>{item.product.title}</h3>
+                    <button
+                      className="cart-remove-button"
+                      type="button"
+                      onClick={() => onRemove(item.product.id)}
+                      aria-label={`Remove ${item.product.title} from cart`}
+                      title="Remove item"
+                    >
+                      <span aria-hidden="true">×</span>
+                    </button>
                   </div>
-                  <div style={{ fontSize: "0.75rem", color: "#aaa" }}>
-                    {item.quantity} x ${item.product.price.toFixed(2)}
+                  <div className="cart-item-meta">
+                    {item.product.format && <span>{item.product.format}</span>}
+                  </div>
+                  <div className="cart-item-bottom">
+                    <div
+                      className="cart-quantity-control"
+                      aria-label={`Quantity: ${item.quantity}`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onQuantityChange(item.product.id, item.quantity - 1)
+                        }
+                        aria-label={`Decrease quantity of ${item.product.title}`}
+                      >
+                        −
+                      </button>
+                      <span>{item.quantity}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onQuantityChange(item.product.id, item.quantity + 1)
+                        }
+                        aria-label={`Increase quantity of ${item.product.title}`}
+                      >
+                        +
+                      </button>
+                    </div>
+                    <strong className="cart-item-price">
+                      $
+                      {((item.product.price || 14.99) * item.quantity).toFixed(
+                        2,
+                      )}
+                    </strong>
                   </div>
                 </div>
-                <button
-                  onClick={() => onRemove(item.product.id)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#ff4d4d",
-                    cursor: "pointer",
-                    fontSize: "0.8rem",
-                  }}
-                >
-                  Remove
-                </button>
-              </div>
+              </article>
             ))}
           </div>
 
-          <form
-            onSubmit={handleApplyPromo}
-            style={{
-              display: "flex",
-              gap: "0.5rem",
-              marginBottom: "1.5rem",
-              borderTop: "1px solid #333",
-              paddingTop: "1rem",
-            }}
-          >
-            <input
-              type="text"
-              value={discountCode}
-              onChange={(e) => setDiscountCode(e.target.value)}
-              placeholder="PROMO CODE"
-              style={{
-                flex: 1,
-                padding: "0.4rem",
-                borderRadius: "4px",
-                border: "1px solid #444",
-                backgroundColor: "#2d2d2d",
-                color: "#fff",
-                fontSize: "0.85rem",
-              }}
-            />
-            <button
-              type="submit"
-              style={{
-                padding: "0.4rem 0.8rem",
-                backgroundColor: "#00bc8c",
-                color: "#fff",
-                border: "none",
-                borderRadius: "4px",
-                fontWeight: "bold",
-                fontSize: "0.85rem",
-                cursor: "pointer",
-              }}
-            >
-              Apply
-            </button>
-          </form>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.5rem",
-              fontSize: "0.9rem",
-              borderTop: "1px solid #333",
-              paddingTop: "1rem",
-              marginBottom: "1.5rem",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#aaa" }}>Subtotal:</span>
-              <span>${subtotal.toFixed(2)}</span>
+          <footer className="cart-footer">
+            <details className="cart-promo">
+              <summary>
+                {appliedDiscount
+                  ? `Code applied: ${appliedDiscount.code}`
+                  : "Have a promo code?"}
+              </summary>
+              <form onSubmit={handleApplyPromo}>
+                <input
+                  type="text"
+                  value={discountCode}
+                  onChange={(e) => setDiscountCode(e.target.value)}
+                  placeholder="Promo code"
+                  aria-label="Promo code"
+                />
+                <button type="submit">Apply</button>
+              </form>
+            </details>
+            <div className="cart-subtotal">
+              <span>{appliedDiscount ? "Total:" : "Subtotal:"}</span>
+              <strong>${grandTotal.toFixed(2)}</strong>
             </div>
             {appliedDiscount && (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  color: "#00bc8c",
-                }}
-              >
-                <span>Discount ({appliedDiscount.code}):</span>
-                <span>-${discountAmount.toFixed(2)}</span>
-              </div>
+              <p className="cart-discount-note">
+                {appliedDiscount.percent}% discount applied (−$
+                {discountAmount.toFixed(2)})
+              </p>
             )}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontSize: "1.1rem",
-                fontWeight: "bold",
-                borderTop: "1px solid #444",
-                paddingTop: "0.5rem",
-                marginTop: "0.25rem",
-              }}
+            <button
+              className="cart-checkout-button"
+              onClick={() => onCheckout(appliedDiscount?.code ?? null)}
             >
-              Total:
-              <span style={{ color: "#ffc107" }}>${grandTotal.toFixed(2)}</span>
-            </div>
-          </div>
-
-          <button
-            onClick={onCheckout}
-            style={{
-              width: "100%",
-              padding: "0.75rem",
-              backgroundColor: "#00bc8c",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              fontWeight: "bold",
-              fontSize: "1rem",
-              cursor: "pointer",
-              transition: "background-color 0.2s",
-            }}
-          >
-            💳 Proceed to Secure Checkout
-          </button>
-        </div>
+              <span aria-hidden="true">🔒</span> Checkout
+            </button>
+            <p className="cart-shipping-note">
+              Taxes &amp; shipping calculated at checkout
+            </p>
+          </footer>
+        </>
       )}
     </div>
   );

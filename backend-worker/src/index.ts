@@ -4,6 +4,7 @@ import { cors } from 'hono/cors';
 type Bindings = {
   SUPABASE_URL: string;
   SUPABASE_ANON_KEY: string;
+  SUPABASE_SERVICE_ROLE_KEY: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -201,48 +202,106 @@ app.post('/api/auth/login', async (c) => {
 
 // 5. STATELESS GUEST CHECKOUT BYPASSER: POST /api/auth/guest
 app.post('/api/auth/guest', async (c) => {
-  const targetUrl = `${c.env.SUPABASE_URL}/rest/v1/Users`;
   try {
     const body = await c.req.json();
     const { fullName } = body;
 
-    const generatedGuestUuid = crypto.randomUUID();
-    const randomGuestId = Math.floor(Math.random() * 10000);
-    const guestEmail = `guest_${randomGuestId}@cinestore.anon`;
-
-    const dbPayload = {
-      Id: generatedGuestUuid,
-      Email: guestEmail,
-      FullName: fullName || 'Guest Customer',
-      ShippingAddress: null,
-      BillingAddress: null,
-      CreatedAt: new Date().toISOString()
-    };
-
-    const response = await fetch(targetUrl, {
-      method: 'POST',
-      headers: {
-        'apikey': c.env.SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${c.env.SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify(dbPayload)
-    });
-
-    if (!response.ok) throw new Error(`Supabase public insert rejected with status: ${response.status}`);
-    const [newGuestRow]: any = await response.json();
+    const guestId = crypto.randomUUID();
+    const guestName = typeof fullName === 'string' && fullName.trim()
+      ? fullName.trim()
+      : 'Guest Customer';
 
     return c.json({
-      accessToken: "mock-guest-jwt-token-string",
+      accessToken: `guest-${guestId}`,
       user: {
-        id: newGuestRow.Id,
-        email: newGuestRow.Email,
-        fullName: newGuestRow.FullName
+        id: guestId,
+        email: `guest-${guestId}@cinestore.invalid`,
+        fullName: guestName
       }
     }, 201);
   } catch (error: any) {
-    return c.json({ error: 'Failed to initialize guest profile row.', message: error.message }, 500);
+    return c.json({ error: 'Failed to start guest checkout.', message: error.message }, 500);
+  }
+});
+
+// 6. CREATE A TEST ORDER WITHOUT PROCESSING A PAYMENT
+app.post('/api/orders', async (c) => {
+  try {
+    const { customerId, customerName, email, phone, shippingAddress, items, discountCode } =
+      await c.req.json();
+
+    if (!c.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return c.json({
+        error: 'Order creation is not configured.',
+        message: 'Set the SUPABASE_SERVICE_ROLE_KEY Worker secret.',
+      }, 503);
+    }
+
+    if (
+      typeof customerName !== 'string' || !customerName.trim() ||
+      typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+      !shippingAddress || typeof shippingAddress !== 'object' ||
+      typeof shippingAddress.address1 !== 'string' || !shippingAddress.address1.trim() ||
+      typeof shippingAddress.city !== 'string' || !shippingAddress.city.trim() ||
+      typeof shippingAddress.region !== 'string' || !shippingAddress.region.trim() ||
+      typeof shippingAddress.postalCode !== 'string' || !shippingAddress.postalCode.trim() ||
+      !Array.isArray(items) || items.length === 0 || items.length > 50
+    ) {
+      return c.json({ error: 'Contact, shipping address, and cart items are required.' }, 400);
+    }
+
+    const orderItems = items.map((item: any) => ({
+      productId: Number(item.productId),
+      quantity: Number(item.quantity),
+    }));
+
+    if (orderItems.some((item: any) =>
+      !Number.isInteger(item.productId) || item.productId <= 0 ||
+      !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99
+    )) {
+      return c.json({ error: 'Cart contains an invalid product or quantity.' }, 400);
+    }
+
+    const customerUuid = typeof customerId === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(customerId)
+      ? customerId
+      : null;
+
+    const response = await fetch(
+      `${c.env.SUPABASE_URL}/rest/v1/rpc/create_test_order`,
+      {
+        method: 'POST',
+        headers: {
+          'apikey': c.env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${c.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          p_customer_id: customerUuid,
+          p_customer_name: customerName.trim(),
+          p_email: email.trim().toLowerCase(),
+          p_phone: typeof phone === 'string' && phone.trim() ? phone.trim() : null,
+          p_shipping_address: shippingAddress,
+          p_items: orderItems,
+          p_discount_code: typeof discountCode === 'string' && discountCode.trim()
+            ? discountCode.trim().toUpperCase()
+            : null,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const errorDetails = await response.text();
+      console.error('Test order creation failed:', response.status, errorDetails);
+      return c.json({
+        error: 'Could not create the test order.',
+        message: errorDetails,
+      }, 502);
+    }
+
+    return c.json(await response.json(), 201);
+  } catch (error: any) {
+    return c.json({ error: 'Could not create the test order.', message: error.message }, 500);
   }
 });
 

@@ -35,6 +35,40 @@ export const getMovies = async (): Promise<Movie[]> => {
   return response.data;
 };
 
+export interface TestOrderRequest {
+  customerId?: string | null;
+  customerName: string;
+  email: string;
+  phone?: string;
+  shippingAddress: {
+    address1: string;
+    address2?: string;
+    city: string;
+    region: string;
+    postalCode: string;
+    country: string;
+  };
+  items: Array<{ productId: number; quantity: number }>;
+  discountCode?: string | null;
+}
+
+export interface TestOrderResponse {
+  orderId: string;
+  subtotal: number;
+  discountAmount: number;
+  total: number;
+  paymentStatus: 'Test';
+  orderStatus: string;
+  createdAt: string;
+}
+
+export const createTestOrder = async (
+  order: TestOrderRequest,
+): Promise<TestOrderResponse> => {
+  const response = await api.post<TestOrderResponse>('/orders', order);
+  return response.data;
+};
+
 // Add these parameters to frontend-ui/src/services/api.ts
 
 export const registerUser = async (email: string, password: string, fullName: string) => {

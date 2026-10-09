@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getCoverImageUrl, getMovies, type Movie } from "./services/api";
 import { AuthForm } from "./components/AuthForm";
 import { CartSummary } from "./components/CartSummary";
+import { CheckoutPage } from "./components/CheckoutPage";
 import { ProductDetail } from "./components/ProductDetail";
 import "./catalog.css";
 
@@ -10,16 +11,7 @@ interface CartItem {
   quantity: number;
 }
 
-const catalogCategories = [
-  "All formats",
-  "Steelbooks",
-  "4K",
-  "Blu-ray",
-  "DVD",
-  "Pre-order",
-  "New Release",
-  "Deals",
-];
+const catalogCategories = ["All", "Steelbooks", "4K", "Blu-ray", "DVD"];
 
 function App() {
   const [products, setProducts] = useState<any>();
@@ -28,15 +20,16 @@ function App() {
 
   // Identity Session Hooks
   const [user, setUser] = useState<any>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFormat, setSelectedFormat] = useState("All formats");
+  const [selectedFormat, setSelectedFormat] = useState("All");
 
   // UX Interaction State Controls
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutDiscountCode, setCheckoutDiscountCode] = useState<string | null>(null);
 
   const fetchCatalog = async () => {
     try {
@@ -59,7 +52,6 @@ function App() {
     const savedToken = localStorage.getItem("token");
     if (savedUser && savedToken) {
       setUser(JSON.parse(savedUser));
-      setToken(savedToken);
     }
     fetchCatalog();
   }, []);
@@ -86,21 +78,30 @@ function App() {
     );
   };
 
-  const handleCheckoutIntent = () => {
-    if (!user) {
-      setShowAuthModal(true);
-    } else {
-      alert(
-        "Proceeding to integrated Stripe test payment gateway routing streams...",
-      );
+  const updateCartQuantity = (productId: number, quantity: number) => {
+    if (quantity < 1) {
+      removeFromCart(productId);
+      return;
     }
+
+    setCart((prevCart) =>
+      prevCart.map((item) =>
+        item.product.id === productId ? { ...item, quantity } : item,
+      ),
+    );
+  };
+
+  const handleCheckoutIntent = (discountCode: string | null) => {
+    if (cart.length === 0) return;
+    setCheckoutDiscountCode(discountCode);
+    setIsCartOpen(false);
+    setIsCheckoutOpen(true);
   };
 
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     setUser(null);
-    setToken(null);
     setCart([]);
     setIsCartOpen(false);
   };
@@ -121,9 +122,6 @@ function App() {
       .toLowerCase();
     const normalizedFormat = String(product.format || "").toLowerCase();
     const categoryText = `${searchableText} ${normalizedFormat}`;
-    const releaseDate = product.releaseDate
-      ? new Date(product.releaseDate).getTime()
-      : Number.NaN;
     const matchesCategory = (() => {
       switch (selectedFormat) {
         case "Steelbooks":
@@ -134,15 +132,6 @@ function App() {
           return /blu[ -]?ray/.test(normalizedFormat);
         case "DVD":
           return /\bdvd\b/.test(normalizedFormat);
-        case "Pre-order":
-          return /pre[ -]?order/.test(categoryText);
-        case "New Release":
-          return (
-            Number.isFinite(releaseDate) &&
-            releaseDate >= Date.now() - 365 * 24 * 60 * 60 * 1000
-          );
-        case "Deals":
-          return Boolean(product.isDeal || product.deal || product.salePrice);
         default:
           return true;
       }
@@ -156,17 +145,17 @@ function App() {
     <div
       style={{
         fontFamily: "Segoe UI, sans-serif",
-        backgroundColor: "#121212",
-        color: "#fff",
+        backgroundColor: isCheckoutOpen ? "#fff" : "#121212",
+        color: isCheckoutOpen ? "#24252a" : "#fff",
         minHeight: "100vh",
-        padding: "clamp(1rem, 4vw, 2rem)",
+        padding: isCheckoutOpen ? 0 : "clamp(1rem, 4vw, 2rem)",
         boxSizing: "border-box",
         position: "relative",
         overflowX: "hidden",
       }}
     >
       {/* 1. APP NAVBAR HEADER */}
-      <header
+      {!isCheckoutOpen && <header
         style={{
           borderBottom: "1px solid #333",
           paddingBottom: "1rem",
@@ -174,25 +163,41 @@ function App() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          gap: "clamp(1rem, 4vw, 3.5rem)",
         }}
       >
         <div
           style={{ cursor: "pointer" }}
           onClick={() => setSelectedProduct(null)}
         >
-          <h1 style={{ color: "#E50914", margin: 0, letterSpacing: "0.5px" }}>
+          <h1
+            style={{
+              color: "#E50914",
+              margin: 1,
+              letterSpacing: "0.5px",
+              fontSize: "clamp(1.45rem, 8vw, 2.25rem)",
+              whiteSpace: "nowrap",
+            }}
+          >
             CineStore
           </h1>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "clamp(0.4rem, 2vw, 1.5rem)",
+            flexShrink: 0,
+          }}
+        >
           <button
             onClick={() => setIsCartOpen(true)}
             style={{
               backgroundColor: "#222",
               border: "1px solid #444",
               color: "#fff",
-              padding: "0.6rem 1.2rem",
+              padding: "0.5rem clamp(0.5rem, 2vw, 1.2rem)",
               borderRadius: "20px",
               cursor: "pointer",
               fontWeight: "bold",
@@ -200,6 +205,8 @@ function App() {
               display: "flex",
               alignItems: "center",
               gap: "0.5rem",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             🛒 Cart{" "}
@@ -247,7 +254,7 @@ function App() {
             <button
               onClick={() => setShowAuthModal(true)}
               style={{
-                padding: "0.5rem 1.2rem",
+                padding: "0.5rem clamp(0.5rem, 2vw, 1.2rem)",
                 backgroundColor: "#E50914",
                 color: "#fff",
                 border: "none",
@@ -256,13 +263,15 @@ function App() {
                 fontWeight: "bold",
                 fontSize: "0.85rem",
                 textTransform: "uppercase",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
               }}
             >
               Sign In
             </button>
           )}
         </div>
-      </header>
+      </header>}
 
       {error && (
         <div
@@ -287,7 +296,25 @@ function App() {
       {/* 2. DYNAMIC MAIN CORE ROUTING LOGIC BLOCK */}
       {!loading && !error && (
         <div style={{ width: "100%" }}>
-          {selectedProduct ? (
+          {isCheckoutOpen ? (
+            <CheckoutPage
+              cart={cart}
+              user={user}
+              discountCode={checkoutDiscountCode}
+              onBack={(orderPlaced) => {
+                setIsCheckoutOpen(false);
+                if (orderPlaced) {
+                  setCheckoutDiscountCode(null);
+                } else {
+                  setIsCartOpen(true);
+                }
+              }}
+              onOrderPlaced={() => {
+                setCart([]);
+                setCheckoutDiscountCode(null);
+              }}
+            />
+          ) : selectedProduct ? (
             <ProductDetail
               product={selectedProduct}
               onBack={() => setSelectedProduct(null)}
@@ -329,20 +356,6 @@ function App() {
                   ))}
                 </div>
               </section>
-              <h2
-                style={{
-                  fontSize: "1.3rem",
-                  marginTop: 0,
-                  marginBottom: "1.5rem",
-                  borderBottom: "2px solid #E50914",
-                  paddingBottom: "0.5rem",
-                  textTransform: "uppercase",
-                  letterSpacing: "1px",
-                  color: "#fff",
-                }}
-              >
-                4K New Releases & Catalog Items
-              </h2>
 
               <div
                 style={{
@@ -445,15 +458,6 @@ function App() {
                         >
                           {product.title}
                         </h3>
-                        <p
-                          style={{
-                            margin: "0 0 0.5rem 0",
-                            color: "#777",
-                            fontSize: "0.85rem",
-                          }}
-                        >
-                          Year: {product.releaseYear || "N/A"}
-                        </p>
                         <div
                           style={{
                             fontSize: "1.2rem",
@@ -498,47 +502,37 @@ function App() {
         </div>
       )}
 
-      {/* 3. FLOATING SIDEBAR DRAWER OVERLAY WRAPPER PANEL */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          right: isCartOpen ? 0 : "-420px",
-          width: "100%",
-          maxWidth: "400px",
-          height: "100vh",
-          backgroundColor: "#1e1e1e",
-          borderLeft: "1px solid #333",
-          boxSizing: "border-box",
-          padding: "2rem 1.5rem",
-          boxShadow: "-8px 0 24px rgba(0,0,0,0.5)",
-          zIndex: 2000,
-          transition: "right 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)",
-          overflowY: "auto",
-        }}
+      {/* 3. SLIDE-OUT CART DRAWER */}
+      <button
+        className={`cart-backdrop${isCartOpen ? " is-open" : ""}`}
+        type="button"
+        aria-label="Close cart"
+        tabIndex={isCartOpen ? 0 : -1}
+        onClick={() => setIsCartOpen(false)}
+      />
+      <aside
+        className={`cart-drawer${isCartOpen ? " is-open" : ""}`}
+        aria-label="Shopping cart"
+        aria-hidden={!isCartOpen}
       >
-        <button
-          onClick={() => setIsCartOpen(false)}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#aaa",
-            fontSize: "0.9rem",
-            cursor: "pointer",
-            fontWeight: "bold",
-            padding: 0,
-            marginBottom: "1.5rem",
-            textTransform: "uppercase",
-          }}
-        >
-          ✕ Close Cart Drawer
-        </button>
+        <header className="cart-drawer-header">
+          <h2>Cart</h2>
+          <button
+            type="button"
+            onClick={() => setIsCartOpen(false)}
+            aria-label="Close cart drawer"
+            title="Close cart"
+          >
+            ×
+          </button>
+        </header>
         <CartSummary
           cart={cart}
           onRemove={removeFromCart}
+          onQuantityChange={updateCartQuantity}
           onCheckout={handleCheckoutIntent}
         />
-      </div>
+      </aside>
 
       {/* 4. MODAL AUTH CONTAINER OVERLAY */}
       {showAuthModal && (
@@ -577,9 +571,8 @@ function App() {
               &times;
             </button>
             <AuthForm
-              onAuthSuccess={(u, t) => {
+              onAuthSuccess={(u) => {
                 setUser(u);
-                setToken(t);
                 setShowAuthModal(false);
               }}
             />

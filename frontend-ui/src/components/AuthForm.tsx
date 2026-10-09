@@ -228,8 +228,12 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
               onAuthSuccess(data.user, data.accessToken); // Logs user in instantly!
             } catch (err: any) {
               console.error(err);
+              const errorMessage =
+                err.response?.data?.message ||
+                err.response?.data?.error ||
+                "Guest checkout could not be started. Please try again.";
               setMessage({
-                text: "Guest allocation limit check error. Check server console.",
+                text: errorMessage,
                 isError: true,
               });
             } finally {
