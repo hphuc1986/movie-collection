@@ -84,6 +84,18 @@
   text-align: center;
 }
 
+.orders-nav-button {
+  padding: 0.4rem 0.75rem;
+  background: #222;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -100,5 +112,25 @@
   .catalog-format-filters {
     margin-inline: -0.25rem;
     padding-inline: 0.25rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .app-header {
+    gap: 0.5rem !important;
+  }
+
+  .signed-in-actions {
+    gap: 0.35rem !important;
+  }
+
+  .signed-in-greeting {
+    display: none;
+  }
+
+  .orders-nav-button,
+  .logout-nav-button {
+    padding: 0.4rem 0.55rem !important;
+    font-size: 0.75rem !important;
   }
 }

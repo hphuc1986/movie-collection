@@ -161,6 +161,7 @@ function App() {
     >
       {/* 1. APP NAVBAR HEADER */}
       {!isCheckoutOpen && <header
+        className="app-header"
         style={{
           borderBottom: "1px solid #333",
           paddingBottom: "1rem",
@@ -180,7 +181,7 @@ function App() {
               color: "#E50914",
               margin: 1,
               letterSpacing: "0.5px",
-              fontSize: "clamp(1.45rem, 8vw, 2.25rem)",
+              fontSize: "clamp(1.25rem, 6vw, 2.25rem)",
               whiteSpace: "nowrap",
             }}
           >
@@ -202,14 +203,14 @@ function App() {
               backgroundColor: "#222",
               border: "1px solid #444",
               color: "#fff",
-              padding: "0.5rem clamp(0.5rem, 2vw, 1.2rem)",
+              padding: "0.5rem clamp(0.35rem, 1.4vw, 1rem)",
               borderRadius: "20px",
               cursor: "pointer",
               fontWeight: "bold",
               fontSize: "0.85rem",
               display: "flex",
               alignItems: "center",
-              gap: "0.5rem",
+              gap: "0.3rem",
               whiteSpace: "nowrap",
               flexShrink: 0,
             }}
@@ -219,7 +220,7 @@ function App() {
               style={{
                 backgroundColor: "#E50914",
                 color: "#fff",
-                padding: "0.1rem 0.5rem",
+                padding: "0.1rem 0.35rem",
                 borderRadius: "10px",
                 fontSize: "0.75rem",
               }}
@@ -230,6 +231,7 @@ function App() {
 
           {user ? (
             <div
+              className="signed-in-actions"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -237,6 +239,7 @@ function App() {
               }}
             >
               <span
+                className="signed-in-greeting"
                 style={{
                   marginRight: "1rem",
                   fontSize: "0.95rem",
@@ -245,23 +248,9 @@ function App() {
               >
                 👋 <strong>{user.fullName}</strong>
               </span>
-              <button
-                onClick={handleLogout}
-                style={{
-                  padding: "0.4rem 1rem",
-                  backgroundColor: "#333",
-                  color: "#fff",
-                  border: "1px solid #555",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "0.85rem",
-                  fontWeight: "bold",
-                }}
-              >
-                Logout
-              </button>
               {!String(user.email || "").endsWith("@cinestore.invalid") && (
                 <button
+                  className="orders-nav-button"
                   onClick={() => {
                     setIsOrderHistoryOpen(true);
                     setIsCartOpen(false);
@@ -281,6 +270,22 @@ function App() {
                   Orders
                 </button>
               )}
+              <button
+                className="logout-nav-button"
+                onClick={handleLogout}
+                style={{
+                  padding: "0.4rem 1rem",
+                  backgroundColor: "#333",
+                  color: "#fff",
+                  border: "1px solid #555",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "0.85rem",
+                  fontWeight: "bold",
+                }}
+              >
+                Logout
+              </button>
             </div>
           ) : (
             <button

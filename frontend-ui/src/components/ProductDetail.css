@@ -149,7 +149,8 @@
 
 .product-detail-purchase-row {
   display: grid;
-  grid-template-columns: auto auto minmax(140px, 1fr);
+  grid-template-columns: max-content max-content;
+  justify-content: start;
   align-items: center;
   gap: 0.75rem;
   padding: 0.7rem;
@@ -189,7 +190,9 @@
 }
 
 .product-detail-add-button {
-  width: 100%;
+  grid-column: 1 / -1;
+  width: min(100%, 190px);
+  justify-self: start;
   min-height: 38px;
   padding: 0.6rem 1rem;
   border: 0;
