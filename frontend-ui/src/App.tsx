@@ -1,25 +1,32 @@
 import { useEffect, useState } from "react";
 import { getMovies, type Movie } from "./services/api";
 import { AuthForm } from "./components/AuthForm";
+import { CartSummary } from "./components/CartSummary";
+
+interface CartItem {
+  product: Movie;
+  quantity: number;
+}
 
 function App() {
-  const [movies, setMovies] = useState<Movie[]>([]);
+  const [products, setProducts] = useState<any>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Authentication State Hooks
   const [user, setUser] = useState<any>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
 
-  const fetchCollection = async () => {
+  const fetchCatalog = async () => {
     try {
+      setLoading(true);
       const data = await getMovies();
-      setMovies(Array.isArray(data) ? data : [data]);
+      setProducts(Array.isArray(data) ? data : [data]);
       setError(null);
     } catch (err: any) {
       console.error(err);
       setError(
-        "Could not fetch collection records from the cloud serverless backend worker API.",
+        "Could not fetch store catalog fields from the Cloudflare Worker API.",
       );
     } finally {
       setLoading(false);
@@ -27,20 +34,33 @@ function App() {
   };
 
   useEffect(() => {
-    // Check localStorage on component boot to keep current session active
     const savedUser = localStorage.getItem("user");
     const savedToken = localStorage.getItem("token");
     if (savedUser && savedToken) {
       setUser(JSON.parse(savedUser));
       setToken(savedToken);
     }
-
-    fetchCollection();
+    fetchCatalog();
   }, []);
 
-  const handleAuthSuccess = (authenticatedUser: any, userToken: string) => {
-    setUser(authenticatedUser);
-    setToken(userToken);
+  const addToCart = (product: any) => {
+    setCart((prevCart) => {
+      const existing = prevCart.find((item) => item.product.id === product.id);
+      if (existing) {
+        return prevCart.map((item) =>
+          item.product.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item,
+        );
+      }
+      return [...prevCart, { product, quantity: 1 }];
+    });
+  };
+
+  const removeFromCart = (productId: number) => {
+    setCart((prevCart) =>
+      prevCart.filter((item) => item.product.id !== productId),
+    );
   };
 
   const handleLogout = () => {
@@ -48,6 +68,7 @@ function App() {
     localStorage.removeItem("token");
     setUser(null);
     setToken(null);
+    setCart([]);
   };
 
   return (
@@ -76,8 +97,6 @@ function App() {
             Cross-Platform API-First Movie Store Ecosystem
           </p>
         </div>
-
-        {/* Live User Session Identity Bar */}
         {user ? (
           <div style={{ textAlign: "right" }}>
             <span
@@ -87,7 +106,7 @@ function App() {
                 color: "#00bc8c",
               }}
             >
-              👋 Welcome, <strong>{user.fullName}</strong>!
+              👋 Customer: <strong>{user.fullName}</strong>
             </span>
             <button
               onClick={handleLogout}
@@ -111,140 +130,166 @@ function App() {
         )}
       </header>
 
-      {/* Main Core View Grid Logic Split */}
       {!user ? (
-        <AuthForm onAuthSuccess={handleAuthSuccess} />
+        <AuthForm
+          onAuthSuccess={(u, t) => {
+            setUser(u);
+            setToken(t);
+          }}
+        />
       ) : (
-        <div>
-          {loading && (
-            <p style={{ color: "#007ACC" }}>
-              🔄 Loading store showcase catalog arrays...
-            </p>
-          )}
-          {error && (
-            <div
-              style={{
-                backgroundColor: "#3a0d11",
-                border: "1px solid #e50914",
-                padding: "1rem",
-                borderRadius: "4px",
-                color: "#ffb3b3",
-              }}
-            >
-              ⚠️ {error}
-            </div>
-          )}
-
-          {!loading && !error && (
-            <div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "3fr 1fr",
+            gap: "2rem",
+            alignItems: "start",
+          }}
+        >
+          <div>
+            {loading && (
+              <p style={{ color: "#007ACC" }}>
+                🔄 Loading store showcase catalog arrays...
+              </p>
+            )}
+            {error && (
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "1rem",
+                  backgroundColor: "#3a0d11",
+                  border: "1px solid #e50914",
+                  padding: "1rem",
+                  borderRadius: "4px",
+                  color: "#ffb3b3",
                 }}
               >
-                <h2 style={{ fontSize: "1.25rem", margin: 0 }}>
-                  🎥 Available Catalog Items ({movies.length})
+                ⚠️ {error}
+              </div>
+            )}
+
+            {!loading && !error && (
+              <div>
+                <h2
+                  style={{
+                    fontSize: "1.4rem",
+                    marginTop: 0,
+                    marginBottom: "1.5rem",
+                    borderBottom: "2px solid #E50914",
+                    paddingBottom: "0.5rem",
+                  }}
+                >
+                  🎥 Available Movies & Media Products
                 </h2>
                 <div
                   style={{
-                    backgroundColor: "#E50914",
-                    padding: "0.5rem 1rem",
-                    borderRadius: "20px",
-                    fontSize: "0.85rem",
-                    fontWeight: "bold",
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(280px, 1fr))",
+                    gap: "1.5rem",
                   }}
                 >
-                  🛒 Shopping Cart: 0 items
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-                  gap: "1.5rem",
-                }}
-              >
-                {movies.map((movie) => (
-                  <div
-                    key={movie.id}
-                    style={{
-                      backgroundColor: "#1e1e1e",
-                      borderRadius: "8px",
-                      padding: "1.5rem",
-                      border: "1px solid #2d2d2d",
-                      boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <div>
-                      <h3 style={{ margin: "0 0 0.5rem 0", color: "#fff" }}>
-                        {movie.title}
-                      </h3>
-                      <p
-                        style={{
-                          margin: "0 0 0.25rem 0",
-                          color: "#aaa",
-                          fontSize: "0.9rem",
-                        }}
-                      >
-                        📅 Release: {movie.releaseYear || "N/A"}
-                      </p>
-                      <p
-                        style={{
-                          margin: "0 0 0.5rem 0",
-                          color: "#aaa",
-                          fontSize: "0.9rem",
-                        }}
-                      >
-                        💿 Format:{" "}
-                        <span style={{ color: "#00bc8c", fontWeight: "bold" }}>
-                          {movie.format || "Digital"}
-                        </span>
-                      </p>
-                    </div>
+                  {products.map((product: any) => (
                     <div
+                      key={product.id}
                       style={{
-                        marginTop: "1rem",
+                        backgroundColor: "#1e1e1e",
+                        borderRadius: "8px",
+                        padding: "1.5rem",
+                        border: "1px solid #2d2d2d",
                         display: "flex",
+                        flexDirection: "column",
                         justifyContent: "space-between",
-                        alignItems: "center",
+                        boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
                       }}
                     >
-                      <span
+                      <div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "start",
+                            marginBottom: "0.5rem",
+                          }}
+                        >
+                          <h3
+                            style={{
+                              margin: 0,
+                              color: "#fff",
+                              fontSize: "1.15rem",
+                            }}
+                          >
+                            {product.title}
+                          </h3>
+                          <span
+                            style={{
+                              backgroundColor: "#333",
+                              padding: "0.2rem 0.5rem",
+                              borderRadius: "4px",
+                              fontSize: "0.75rem",
+                              color: "#aaa",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {product.format}
+                          </span>
+                        </div>
+                        <p
+                          style={{
+                            color: "#aaa",
+                            fontSize: "0.85rem",
+                            margin: "0 0 1rem 0",
+                            lineHeight: "1.4",
+                            height: "40px",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {product.description ||
+                            "No movie description listed in catalog yet."}
+                        </p>
+                        <span style={{ fontSize: "0.85rem", color: "#888" }}>
+                          📅 Release: {product.releaseYear || "N/A"}
+                        </span>
+                      </div>
+                      <div
                         style={{
-                          fontSize: "1.2rem",
-                          fontWeight: "bold",
-                          color: "#ffc107",
+                          marginTop: "1.5rem",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
                         }}
                       >
-                        $14.99
-                      </span>
-                      <button
-                        style={{
-                          padding: "0.4rem 0.8rem",
-                          backgroundColor: "#00bc8c",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: "4px",
-                          fontWeight: "bold",
-                          cursor: "pointer",
-                          fontSize: "0.85rem",
-                        }}
-                      >
-                        Add to Cart
-                      </button>
+                        <span
+                          style={{
+                            fontSize: "1.3rem",
+                            fontWeight: "bold",
+                            color: "#ffc107",
+                          }}
+                        >
+                          ${(product.price || 14.99).toFixed(2)}
+                        </span>
+                        <button
+                          onClick={() => addToCart(product)}
+                          style={{
+                            padding: "0.5rem 1rem",
+                            backgroundColor: "#E50914",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: "4px",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          Add to Cart
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+
+          <CartSummary cart={cart} onRemove={removeFromCart} />
         </div>
       )}
     </div>
