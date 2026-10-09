@@ -12,7 +12,7 @@ export interface Movie {
 }
 
 const R2_MEDIA_BASE_URL =
-  'https://f362c2cdf6eaef06c0ffd247f1a99967.r2.cloudflarestorage.com/media';
+  'https://pub-c6abaec6093d4c5284782aa8c4d38477.r2.dev';
 
 export const getCoverImageUrl = (fileName?: string | null): string | undefined => {
   const normalizedFileName = fileName?.trim();
