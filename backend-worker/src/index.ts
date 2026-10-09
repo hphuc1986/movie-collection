@@ -216,41 +216,59 @@ app.put('/api/user/profile', async (c) => {
   }
 });
 
-// Add this to backend-worker/src/index.ts
+// REPLACE THIS ENDPOINT INSIDE backend-worker/src/index.ts
 
-// 3. ANONYMOUS GUEST REGISTRATION BYPASSER: POST /api/auth/guest
+// 3. STATELESS GUEST CHECKOUT BYPASSER: POST /api/auth/guest
 app.post('/api/auth/guest', async (c) => {
-  const targetUrl = `${c.env.SUPABASE_URL}/auth/v1/signup`;
+  const targetUrl = `${c.env.SUPABASE_URL}/rest/v1/Users`;
   try {
     const body = await c.req.json();
     const { fullName } = body;
 
-    // Generate an automatic random anonymous email that satisfies Supabase requirements
-    const guestId = Math.floor(Math.random() * 100000);
-    const guestEmail = `guest_buyer_${guestId}@cinestore.anon`;
-    const guestPassword = `SecureGuestPassword123!_${guestId}`;
+    // 1. Generate a valid runtime v4 UUID for the Guest's primary ID key
+    const generatedGuestUuid = crypto.randomUUID();
+    const randomGuestId = Math.floor(Math.random() * 10000);
+    const guestEmail = `guest_${randomGuestId}@cinestore.anon`;
+
+    // 2. Directly write the guest row payload into your public "Users" table via HTTP
+    const dbPayload = {
+      Id: generatedGuestUuid,
+      Email: guestEmail,
+      FullName: fullName || 'Guest Customer',
+      ShippingAddress: null,
+      BillingAddress: null,
+      CreatedAt: new Date().toISOString()
+    };
 
     const response = await fetch(targetUrl, {
       method: 'POST',
       headers: {
         'apikey': c.env.SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${c.env.SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
       },
-      body: JSON.stringify({
-        email: guestEmail,
-        password: guestPassword,
-        options: {
-          data: { fullName: fullName || 'Guest Customer' } // Caught smoothly by our multi-case trigger!
-        }
-      }),
+      body: JSON.stringify(dbPayload)
     });
 
-    const data: any = await response.json();
-    if (!response.ok) return c.json({ error: data.msg || 'Guest initialization failed.' }, response.status as any);
+    if (!response.ok) {
+      throw new Error(`Supabase public insert rejected with status: ${response.status}`);
+    }
 
-    return c.json({ message: 'Guest session generated!', user: data.user }, 201);
+    const [newGuestRow]: any = await response.json();
+
+    // 3. Return a session object to React that mirrors a regular login contract!
+    return c.json({
+      accessToken: "mock-guest-jwt-token-string",
+      user: {
+        id: newGuestRow.Id,
+        email: newGuestRow.Email,
+        fullName: newGuestRow.FullName
+      }
+    }, 201);
+
   } catch (error: any) {
-    return c.json({ error: 'Guest authentication service failure', message: error.message }, 500);
+    return c.json({ error: 'Failed to initialize guest profile row.', message: error.message }, 500);
   }
 });
 

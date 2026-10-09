@@ -8,9 +8,10 @@ interface CartItem {
 interface CartSummaryProps {
   cart: CartItem[];
   onRemove: (id: number) => void;
+  onCheckout: () => void; // 👈 ADD THIS PROP FIELD
 }
 
-export function CartSummary({ cart, onRemove }: CartSummaryProps) {
+export function CartSummary({ cart, onRemove, onCheckout }: CartSummaryProps) {
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{
     code: string;
@@ -213,11 +214,7 @@ export function CartSummary({ cart, onRemove }: CartSummaryProps) {
           </div>
 
           <button
-            onClick={() =>
-              alert(
-                "Proceeding to integrated Stripe test payment routing gateway...",
-              )
-            }
+            onClick={onCheckout}
             style={{
               width: "100%",
               padding: "0.75rem",
@@ -228,9 +225,10 @@ export function CartSummary({ cart, onRemove }: CartSummaryProps) {
               fontWeight: "bold",
               fontSize: "1rem",
               cursor: "pointer",
+              transition: "background-color 0.2s",
             }}
           >
-            💳 Secure Checkout
+            💳 Proceed to Secure Checkout
           </button>
         </div>
       )}

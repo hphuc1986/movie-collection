@@ -211,15 +211,25 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
           onClick={async () => {
             try {
               setLoading(true);
+              setMessage(null);
               const guestName = fullName.trim() || "Guest Customer";
-              await registerGuestUser(guestName);
+
+              // Call your updated backend worker endpoint
+              const data = await registerGuestUser(guestName);
+
+              // Save the guest session parameters to match your login states!
+              localStorage.setItem("token", data.accessToken);
+              localStorage.setItem("user", JSON.stringify(data.user));
+
               setMessage({
-                text: `Guest account initialized successfully! You can sign in using an email layout now.`,
+                text: `Welcome back, ${data.user.fullName}!`,
                 isError: false,
               });
+              onAuthSuccess(data.user, data.accessToken); // Logs user in instantly!
             } catch (err: any) {
+              console.error(err);
               setMessage({
-                text: "Guest allocation limit check error.",
+                text: "Guest allocation limit check error. Check server console.",
                 isError: true,
               });
             } finally {
@@ -235,6 +245,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
             fontWeight: "bold",
             cursor: "pointer",
             marginTop: "0.5rem",
+            width: "100%",
           }}
         >
           🛒 Fast Guest Checkout (Bypass Email Limits)
