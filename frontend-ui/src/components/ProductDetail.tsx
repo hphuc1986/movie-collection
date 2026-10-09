@@ -163,12 +163,6 @@ export function ProductDetail({
             >
               {product.title}
             </h2>
-            <p className="product-detail-release">
-              Released{" "}
-              {formatReleaseDate(product.releaseDate) !== "N/A"
-                ? formatReleaseDate(product.releaseDate)
-                : product.releaseYear || "Date not available"}
-            </p>
           </div>
 
           <div className="product-detail-price">
@@ -178,15 +172,13 @@ export function ProductDetail({
           <div
             className={`product-detail-stock${isOutOfStock ? " is-out-of-stock" : ""}`}
           >
-            <strong>{isOutOfStock ? "Out of stock" : "In stock"}</strong>
+            <strong>
+              {isOutOfStock
+                ? "Out of stock"
+                : `${product.stockQuantity} In stock`}
+            </strong>
             {!isOutOfStock && (
-              <>
-                <span>
-                  {product.stockQuantity} unit
-                  {product.stockQuantity === 1 ? "" : "s"} available
-                </span>
-                <span>Usually shipped within 24 hours</span>
-              </>
+              <span>Usually shipped within 24 hours</span>
             )}
           </div>
 
