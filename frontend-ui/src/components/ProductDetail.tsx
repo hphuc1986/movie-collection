@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { getCoverImageUrl } from "../services/api";
 import "./ProductDetail.css";
 
 interface ProductDetailProps {
@@ -16,6 +17,19 @@ export function ProductDetail({
 
   // Interactive Local Item Quantity Counter Hook
   const [quantity, setQuantity] = useState<number>(1);
+  const [activeCover, setActiveCover] = useState<"front" | "back">("front");
+  const frontCoverUrl = getCoverImageUrl(product.frontCover);
+  const backCoverUrl = getCoverImageUrl(product.backCover);
+  const displayedCover =
+    activeCover === "back" && backCoverUrl
+      ? "back"
+      : frontCoverUrl
+        ? "front"
+        : backCoverUrl
+          ? "back"
+          : "front";
+  const displayedCoverUrl =
+    displayedCover === "back" ? backCoverUrl : frontCoverUrl;
 
   const incrementQty = () => {
     if (quantity < (product.stockQuantity || 99))
@@ -30,7 +44,13 @@ export function ProductDetail({
   const formatReleaseDate = (dateString: string) => {
     if (!dateString) return "N/A";
     try {
-      return dateString.split("T")[0];
+      const date = new Date(dateString);
+      if (Number.isNaN(date.getTime())) return dateString;
+      return new Intl.DateTimeFormat("en-GB", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }).format(date);
     } catch {
       return dateString;
     }
@@ -47,7 +67,7 @@ export function ProductDetail({
         style={{
           background: "none",
           border: "none",
-          color: "#00bc8c",
+          color: "#6847ff",
           cursor: "pointer",
           fontSize: "0.95rem",
           marginBottom: "1.5rem",
@@ -69,56 +89,63 @@ export function ProductDetail({
           alignItems: "start",
         }}
       >
-        {/* LEFT COLUMN: HIGH-RES COVER FRAMING CONTAINER */}
-        <div
-          className="product-detail-poster"
-          style={{
-            borderRadius: "6px",
-            overflow: "hidden",
-            backgroundColor: "#1e1e1e",
-            border: "1px solid #282828",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
-            aspectRatio: "2/3",
-          }}
-        >
-          {product.posterUrl ? (
-            <img
-              src={product.posterUrl}
-              alt={product.title}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
-          ) : (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-                color: "#444",
-                fontSize: "1.2rem",
-                fontWeight: "bold",
-              }}
+        {/* LEFT COLUMN: FRONT AND BACK COVER GALLERY */}
+        <div className="product-detail-cover-column">
+          <div className="product-detail-poster">
+            {displayedCoverUrl ? (
+              <img
+                src={displayedCoverUrl}
+                alt={`${product.title} ${displayedCover} cover`}
+                className="product-detail-cover-image"
+              />
+            ) : (
+              <div className="product-detail-cover-placeholder">
+                {displayedCover === "front" ? "Front" : "Back"} cover image
+                unavailable
+              </div>
+            )}
+          </div>
+          <div
+            className="product-detail-cover-toggle"
+            role="group"
+            aria-label="Choose product cover"
+          >
+            <button
+              type="button"
+              className={displayedCover === "front" ? "is-active" : ""}
+              onClick={() => setActiveCover("front")}
+              aria-pressed={displayedCover === "front"}
+              disabled={!frontCoverUrl}
             >
-              🎬 POSTER CONTAINER
-            </div>
-          )}
+              Front Cover
+            </button>
+            <button
+              type="button"
+              className={displayedCover === "back" ? "is-active" : ""}
+              onClick={() => setActiveCover("back")}
+              aria-pressed={displayedCover === "back"}
+              disabled={!backCoverUrl}
+            >
+              Back Cover
+            </button>
+          </div>
         </div>
 
         {/* RIGHT COLUMN: RICH PRODUCTION METRICS SPECIFICATIONS PANEL */}
         <div
           className="product-detail-information"
-          style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}
+          style={{ display: "flex", flexDirection: "column" }}
         >
           <div>
             <span
               style={{
-                backgroundColor: "#2d2d2d",
-                color: "#ffc107",
+                backgroundColor: "#f1efff",
+                color: "#6847ff",
                 padding: "0.35rem 0.75rem",
                 borderRadius: "4px",
                 fontSize: "0.75rem",
                 fontWeight: "bold",
-                border: "1px solid #444",
+                border: "1px solid #e1dcff",
                 textTransform: "uppercase",
                 letterSpacing: "0.5px",
               }}
@@ -130,125 +157,66 @@ export function ProductDetail({
               style={{
                 fontWeight: "bold",
                 margin: "0.75rem 0 0.25rem 0",
-                color: "#fff",
+                color: "#262238",
                 lineHeight: "1.2",
               }}
             >
               {product.title}
             </h2>
-            <p style={{ color: "#aaa", fontSize: "0.9rem", margin: 0 }}>
-              Released Catalog Tracking Year:{" "}
-              <strong>{product.releaseYear || "N/A"}</strong>
+            <p className="product-detail-release">
+              Released{" "}
+              {formatReleaseDate(product.releaseDate) !== "N/A"
+                ? formatReleaseDate(product.releaseDate)
+                : product.releaseYear || "Date not available"}
             </p>
           </div>
 
-          <div
-            style={{
-              fontSize: "2rem",
-              fontWeight: "bold",
-              color: "#fff",
-              margin: "0.1rem 0",
-            }}
-          >
+          <div className="product-detail-price">
             ${(product.price || 14.99).toFixed(2)}
           </div>
 
           <div
-            style={{
-              color: !isOutOfStock ? "#00bc8c" : "#ff4d4d",
-              fontWeight: "bold",
-              fontSize: "0.95rem",
-            }}
+            className={`product-detail-stock${isOutOfStock ? " is-out-of-stock" : ""}`}
           >
-            {!isOutOfStock
-              ? "🟢 In Stock - Usually ships within 24 hours"
-              : "🔴 Sorry! This product is currently out of stock"}
+            <strong>{isOutOfStock ? "Out of stock" : "In stock"}</strong>
+            {!isOutOfStock && <span>Usually shipped within 24 hours</span>}
           </div>
 
           {/* QUANTITY CONTROL INCREMENT MATRIX */}
           {!isOutOfStock && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "1rem",
-                borderTop: "1px solid #333",
-                paddingTop: "1.25rem",
-                marginBottom: "0.5rem",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "0.85rem",
-                  color: "#aaa",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                Quantity
-              </span>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  border: "1px solid #444",
-                  borderRadius: "4px",
-                  backgroundColor: "#2d2d2d",
-                  overflow: "hidden",
-                }}
-              >
+            <div className="product-detail-purchase-row">
+              <span className="product-detail-quantity-label">Quantity</span>
+              <div className="product-detail-quantity-control">
                 <button
                   type="button"
                   onClick={decrementQty}
-                  style={{
-                    border: "none",
-                    backgroundColor: "transparent",
-                    color: "#fff",
-                    width: "36px",
-                    height: "36px",
-                    cursor: "pointer",
-                    fontSize: "1.1rem",
-                    fontWeight: "bold",
-                  }}
+                  aria-label="Decrease quantity"
                 >
                   -
                 </button>
-                <div
-                  style={{
-                    width: "40px",
-                    textAlign: "center",
-                    fontSize: "0.95rem",
-                    fontWeight: "bold",
-                    color: "#fff",
-                  }}
-                >
-                  {quantity}
-                </div>
+                <div className="product-detail-quantity-value">{quantity}</div>
                 <button
                   type="button"
                   onClick={incrementQty}
-                  style={{
-                    border: "none",
-                    backgroundColor: "transparent",
-                    color: "#fff",
-                    width: "36px",
-                    height: "36px",
-                    cursor: "pointer",
-                    fontSize: "1.1rem",
-                    fontWeight: "bold",
-                  }}
+                  aria-label="Increase quantity"
                 >
                   +
                 </button>
               </div>
+              <button
+                className="product-detail-add-button"
+                onClick={() => onAddToCart(product, quantity)}
+              >
+                Add to cart
+              </button>
             </div>
           )}
 
-          <div style={{ borderTop: "1px solid #333", paddingTop: "1.25rem" }}>
+          <div className="product-detail-section">
             <h4
               style={{
                 margin: "0 0 0.5rem 0",
-                color: "#aaa",
+                color: "#6847ff",
                 textTransform: "uppercase",
                 fontSize: "0.8rem",
                 letterSpacing: "0.5px",
@@ -259,7 +227,7 @@ export function ProductDetail({
             <p
               style={{
                 margin: 0,
-                color: "#ddd",
+                color: "#383641",
                 fontSize: "1.05rem",
                 lineHeight: "1.6",
               }}
@@ -270,11 +238,11 @@ export function ProductDetail({
           </div>
 
           {/* COMPREHENSIVE SPECIFICATIONS METRIC TABLE GRID */}
-          <div style={{ borderTop: "1px solid #333", paddingTop: "1.25rem" }}>
+          <div className="product-detail-section">
             <h4
               style={{
                 margin: "0 0 0.75rem 0",
-                color: "#aaa",
+                color: "#6847ff",
                 textTransform: "uppercase",
                 fontSize: "0.8rem",
                 letterSpacing: "0.5px",
@@ -288,17 +256,17 @@ export function ProductDetail({
               style={{
                 display: "grid",
                 gap: "0.75rem",
-                backgroundColor: "#181818",
+                backgroundColor: "#faf9fc",
                 padding: "1.25rem",
                 borderRadius: "6px",
-                border: "1px solid #222",
+                border: "1px solid #eceaf0",
                 fontSize: "0.9rem",
               }}
             >
               <div>
                 <span
                   style={{
-                    color: "#777",
+                    color: "#5b5865",
                     display: "block",
                     fontSize: "0.75rem",
                     textTransform: "uppercase",
@@ -306,14 +274,12 @@ export function ProductDetail({
                 >
                   Format Type:
                 </span>{" "}
-                <strong style={{ color: "#ccc" }}>
-                  {product.format || "UHD"}
-                </strong>
+                <strong>{product.format || "UHD"}</strong>
               </div>
               <div>
                 <span
                   style={{
-                    color: "#777",
+                    color: "#5b5865",
                     display: "block",
                     fontSize: "0.75rem",
                     textTransform: "uppercase",
@@ -321,14 +287,12 @@ export function ProductDetail({
                 >
                   Catalog No:
                 </span>{" "}
-                <strong style={{ color: "#ccc" }}>
-                  {product.catalogNo || "1000863251"}
-                </strong>
+                <strong>{product.catalogNo || "1000863251"}</strong>
               </div>
               <div>
                 <span
                   style={{
-                    color: "#777",
+                    color: "#5b5865",
                     display: "block",
                     fontSize: "0.75rem",
                     textTransform: "uppercase",
@@ -336,14 +300,12 @@ export function ProductDetail({
                 >
                   UPC Barcode:
                 </span>{" "}
-                <strong style={{ color: "#ccc" }}>
-                  {product.upc || "826663269147"}
-                </strong>
+                <strong>{product.upc || "826663269147"}</strong>
               </div>
               <div>
                 <span
                   style={{
-                    color: "#777",
+                    color: "#5b5865",
                     display: "block",
                     fontSize: "0.75rem",
                     textTransform: "uppercase",
@@ -351,14 +313,12 @@ export function ProductDetail({
                 >
                   Rating:
                 </span>{" "}
-                <strong style={{ color: "#ccc" }}>
-                  {product.rating ? `${product.rating}A` : "NR"}
-                </strong>
+                <strong>{product.rating ? `${product.rating}A` : "NR"}</strong>
               </div>
               <div>
                 <span
                   style={{
-                    color: "#777",
+                    color: "#5b5865",
                     display: "block",
                     fontSize: "0.75rem",
                     textTransform: "uppercase",
@@ -366,14 +326,12 @@ export function ProductDetail({
                 >
                   Release Date:
                 </span>{" "}
-                <strong style={{ color: "#ccc" }}>
-                  {formatReleaseDate(product.releaseDate)}
-                </strong>
+                <strong>{formatReleaseDate(product.releaseDate)}</strong>
               </div>
               <div>
                 <span
                   style={{
-                    color: "#777",
+                    color: "#5b5865",
                     display: "block",
                     fontSize: "0.75rem",
                     textTransform: "uppercase",
@@ -381,14 +339,12 @@ export function ProductDetail({
                 >
                   Studio Description:
                 </span>{" "}
-                <strong style={{ color: "#ccc" }}>
-                  {product.studio || "Shout! Factory"}
-                </strong>
+                <strong>{product.studio || "Shout! Factory"}</strong>
               </div>
               <div>
                 <span
                   style={{
-                    color: "#777",
+                    color: "#5b5865",
                     display: "block",
                     fontSize: "0.75rem",
                     textTransform: "uppercase",
@@ -396,9 +352,7 @@ export function ProductDetail({
                 >
                   Region Coding:
                 </span>{" "}
-                <strong style={{ color: "#ccc" }}>
-                  {product.region || "Region A"}
-                </strong>
+                <strong>{product.region || "Region A"}</strong>
               </div>
               <div>
                 <span
@@ -431,27 +385,11 @@ export function ProductDetail({
             </div>
           </div>
 
-          <button
-            className="product-detail-add-button"
-            onClick={() => !isOutOfStock && onAddToCart(product, quantity)}
-            disabled={isOutOfStock}
-            style={{
-              padding: "0.9rem 2rem",
-              backgroundColor: isOutOfStock ? "#252525" : "#00bc8c",
-              color: isOutOfStock ? "#555" : "#fff",
-              border: "none",
-              borderRadius: "4px",
-              fontWeight: "bold",
-              fontSize: "0.95rem",
-              cursor: isOutOfStock ? "not-allowed" : "pointer",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              marginTop: "1rem",
-              transition: "background-color 0.2s",
-            }}
-          >
-            {isOutOfStock ? "🚫 Out of Stock" : "🛒 Add to Cart"}
-          </button>
+          {isOutOfStock && (
+            <button className="product-detail-add-button" disabled>
+              Out of stock
+            </button>
+          )}
         </div>
       </div>
     </div>

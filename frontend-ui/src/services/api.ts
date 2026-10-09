@@ -7,7 +7,19 @@ export interface Movie {
   format?: string;
   rating?: number;
   createdAt: string;
+  frontCover?: string | null;
+  backCover?: string | null;
 }
+
+const R2_MEDIA_BASE_URL =
+  'https://f362c2cdf6eaef06c0ffd247f1a99967.r2.cloudflarestorage.com/media';
+
+export const getCoverImageUrl = (fileName?: string | null): string | undefined => {
+  const normalizedFileName = fileName?.trim();
+  if (!normalizedFileName) return undefined;
+
+  return `${R2_MEDIA_BASE_URL}/${encodeURIComponent(normalizedFileName)}`;
+};
 
 // Points directly to your secure .NET local server port we verified earlier
 const api = axios.create({

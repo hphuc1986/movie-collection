@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getMovies, type Movie } from "./services/api";
+import { getCoverImageUrl, getMovies, type Movie } from "./services/api";
 import { AuthForm } from "./components/AuthForm";
 import { CartSummary } from "./components/CartSummary";
 import { ProductDetail } from "./components/ProductDetail";
@@ -123,13 +123,8 @@ function App() {
           onClick={() => setSelectedProduct(null)}
         >
           <h1 style={{ color: "#E50914", margin: 0, letterSpacing: "0.5px" }}>
-            🎬 CineStore Hub
+            🎬 CineStore
           </h1>
-          <p
-            style={{ color: "#aaa", margin: "0.5rem 0 0", fontSize: "0.9rem" }}
-          >
-            Cross-Platform API-First Movie Store Ecosystem
-          </p>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
@@ -266,6 +261,7 @@ function App() {
               >
                 {products.map((product: any) => {
                   const isOutOfStock = product.stockQuantity <= 0;
+                  const frontCoverUrl = getCoverImageUrl(product.frontCover);
 
                   return (
                     <div
@@ -280,7 +276,7 @@ function App() {
                         onClick={() => setSelectedProduct(product)}
                         style={{
                           width: "100%",
-                          height: "320px",
+                          aspectRatio: "6/7",
                           borderRadius: "4px",
                           overflow: "hidden",
                           backgroundColor: "#1e1e1e",
@@ -291,9 +287,9 @@ function App() {
                           cursor: "pointer",
                         }}
                       >
-                        {product.posterUrl ? (
+                        {frontCoverUrl ? (
                           <img
-                            src={product.posterUrl}
+                            src={frontCoverUrl}
                             alt={product.title}
                             style={{
                               width: "100%",
