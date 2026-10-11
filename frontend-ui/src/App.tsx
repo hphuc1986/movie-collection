@@ -702,13 +702,7 @@ function App() {
                 </>
               )}
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-                  gap: "2rem",
-                }}
-              >
+              <div className="catalog-product-grid">
                 {sortedProducts.map((product: any) => {
                   const isOutOfStock = product.stockQuantity <= 0;
                   const frontCoverUrl = getCoverImageUrl(product.frontCover);

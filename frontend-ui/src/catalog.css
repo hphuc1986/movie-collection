@@ -300,6 +300,12 @@
   color: #fff;
 }
 
+.catalog-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 2rem;
+}
+
 .catalog-empty-state {
   padding: 2rem 1rem;
   color: #aaa;
@@ -331,6 +337,11 @@
 }
 
 @media (max-width: 600px) {
+  .catalog-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 0.75rem;
+  }
+
   .catalog-controls {
     gap: 0.5rem;
   }
