@@ -437,7 +437,6 @@ function App() {
                 </div>
                 {availableGenres.length > 0 && (
                   <div className="catalog-genre-filter">
-                    <span className="catalog-filter-label">Genre</span>
                     <div
                       className="catalog-genre-options"
                       role="group"
@@ -451,7 +450,7 @@ function App() {
                         aria-pressed={selectedGenres.length === 0}
                         onClick={() => setSelectedGenres([])}
                       >
-                        All genres
+                        All
                       </button>
                       {availableGenres.map((genre) => (
                         <button
