@@ -25,11 +25,16 @@ function App() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFormat, setSelectedFormat] = useState("All");
-  const [selectedGenre, setSelectedGenre] = useState("");
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedStudio, setSelectedStudio] = useState("");
+  const [availability, setAvailability] = useState("all");
+  const [minimumPrice, setMinimumPrice] = useState("");
+  const [maximumPrice, setMaximumPrice] = useState("");
   const [sortBy, setSortBy] = useState("title-asc");
 
   // UX Interaction State Controls
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -63,6 +68,22 @@ function App() {
     }
     fetchCatalog();
   }, []);
+
+  useEffect(() => {
+    if (!isFilterOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsFilterOpen(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isFilterOpen]);
 
   // Update your addToCart function inside frontend-ui/src/App.tsx to match this:
   const addToCart = (product: any, selectedQty: number = 1) => {
@@ -135,6 +156,13 @@ function App() {
   const availableGenres = [
     ...new Set(catalogProducts.flatMap(getProductGenres)),
   ].sort((first, second) => first.localeCompare(second));
+  const availableStudios = [
+    ...new Set(
+      catalogProducts
+        .map((product: any) => String(product.studio ?? "").trim())
+        .filter(Boolean),
+    ),
+  ].sort((first, second) => first.localeCompare(second));
   const filteredProducts = catalogProducts.filter((product: any) => {
     const searchableText = [
       product.title,
@@ -163,14 +191,47 @@ function App() {
       }
     })();
     const matchesGenre =
-      !selectedGenre || getProductGenres(product).includes(selectedGenre);
+      selectedGenres.length === 0 ||
+      getProductGenres(product).some((genre) => selectedGenres.includes(genre));
+    const matchesStudio =
+      !selectedStudio || String(product.studio ?? "") === selectedStudio;
+    const stockQuantity = Number(product.stockQuantity ?? 0);
+    const matchesAvailability =
+      availability === "all" ||
+      (availability === "in-stock" && stockQuantity > 0) ||
+      (availability === "out-of-stock" && stockQuantity <= 0);
+    const price = Number(product.price ?? 0);
+    const matchesPrice =
+      (minimumPrice === "" || price >= Number(minimumPrice)) &&
+      (maximumPrice === "" || price <= Number(maximumPrice));
 
     return (
       matchesCategory &&
       matchesGenre &&
+      matchesStudio &&
+      matchesAvailability &&
+      matchesPrice &&
       searchableText.includes(normalizedQuery)
     );
   });
+
+  const activeFilterCount =
+    Number(selectedFormat !== "All") +
+    selectedGenres.length +
+    Number(Boolean(selectedStudio)) +
+    Number(availability !== "all") +
+    Number(minimumPrice !== "") +
+    Number(maximumPrice !== "");
+
+  const clearFilters = () => {
+    setSelectedFormat("All");
+    setSelectedGenres([]);
+    setSelectedStudio("");
+    setAvailability("all");
+    setMinimumPrice("");
+    setMaximumPrice("");
+    setSortBy("title-asc");
+  };
 
   const sortedProducts = [...filteredProducts].sort((first, second) => {
     const firstTitle = String(first.title ?? "");
@@ -448,75 +509,198 @@ function App() {
                     onChange={(event) => setSearchQuery(event.target.value)}
                   />
                 </label>
-                <div
-                  className="catalog-format-filters"
-                  role="group"
-                  aria-label="Filter movies by category"
+                <button
+                  className="catalog-filter-trigger"
+                  type="button"
+                  aria-expanded={isFilterOpen}
+                  aria-controls="catalog-filter-panel"
+                  onClick={() => setIsFilterOpen(true)}
                 >
-                  {catalogCategories.map((format) => (
-                    <button
-                      key={format}
-                      type="button"
-                      className={selectedFormat === format ? "is-active" : ""}
-                      aria-pressed={selectedFormat === format}
-                      onClick={() => setSelectedFormat(format)}
-                    >
-                      {format}
-                    </button>
-                  ))}
-                </div>
-                {availableGenres.length > 0 && (
-                  <div className="catalog-genre-filter">
-                    <div
-                      className="catalog-genre-options"
-                      role="group"
-                      aria-label="Filter movies by genre"
-                    >
+                  <span aria-hidden="true">☷</span>
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <span className="catalog-filter-count">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
+              </section>
+
+              {isFilterOpen && (
+                <>
+                  <button
+                    className="catalog-filter-backdrop"
+                    type="button"
+                    aria-label="Close filters"
+                    onClick={() => setIsFilterOpen(false)}
+                  />
+                  <aside
+                    id="catalog-filter-panel"
+                    className="catalog-filter-panel"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="catalog-filter-title"
+                  >
+                    <header className="catalog-filter-header">
+                      <h2 id="catalog-filter-title">Filters &amp; sorting</h2>
                       <button
                         type="button"
-                        className={!selectedGenre ? "is-active" : ""}
-                        aria-pressed={!selectedGenre}
-                        onClick={() => setSelectedGenre("")}
+                        aria-label="Close filters"
+                        onClick={() => setIsFilterOpen(false)}
                       >
-                        All
+                        ×
                       </button>
-                      {availableGenres.map((genre) => (
-                        <button
-                          key={genre}
-                          type="button"
-                          className={selectedGenre === genre ? "is-active" : ""}
-                          aria-pressed={selectedGenre === genre}
-                          onClick={() =>
-                            setSelectedGenre((current) =>
-                              current === genre ? "" : genre,
-                            )
+                    </header>
+                    <div className="catalog-filter-content">
+                      <fieldset className="catalog-filter-group">
+                        <legend>Format</legend>
+                        <div className="catalog-filter-chips">
+                          {catalogCategories.map((format) => (
+                            <button
+                              key={format}
+                              type="button"
+                              className={
+                                selectedFormat === format ? "is-active" : ""
+                              }
+                              aria-pressed={selectedFormat === format}
+                              onClick={() => setSelectedFormat(format)}
+                            >
+                              {format}
+                            </button>
+                          ))}
+                        </div>
+                      </fieldset>
+
+                      {availableGenres.length > 0 && (
+                        <fieldset className="catalog-filter-group">
+                          <legend>Genre</legend>
+                          <div className="catalog-filter-checklist">
+                            {availableGenres.map((genre) => (
+                              <label key={genre}>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedGenres.includes(genre)}
+                                  onChange={(event) =>
+                                    setSelectedGenres((current) =>
+                                      event.target.checked
+                                        ? [...current, genre]
+                                        : current.filter(
+                                            (selected) => selected !== genre,
+                                          ),
+                                    )
+                                  }
+                                />
+                                <span>{genre}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </fieldset>
+                      )}
+
+                      <label className="catalog-filter-field">
+                        <span>Studio</span>
+                        <select
+                          value={selectedStudio}
+                          onChange={(event) =>
+                            setSelectedStudio(event.target.value)
                           }
                         >
-                          {genre}
-                        </button>
-                      ))}
+                          <option value="">All studios</option>
+                          {availableStudios.map((studio) => (
+                            <option key={studio} value={studio}>
+                              {studio}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="catalog-filter-field">
+                        <span>Availability</span>
+                        <select
+                          value={availability}
+                          onChange={(event) =>
+                            setAvailability(event.target.value)
+                          }
+                        >
+                          <option value="all">All availability</option>
+                          <option value="in-stock">In Stock</option>
+                          <option value="out-of-stock">Out of Stock</option>
+                        </select>
+                      </label>
+
+                      <fieldset className="catalog-filter-group">
+                        <legend>Price range</legend>
+                        <div className="catalog-price-range">
+                          <label>
+                            <span>Min</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              inputMode="decimal"
+                              placeholder="$0"
+                              value={minimumPrice}
+                              onChange={(event) =>
+                                setMinimumPrice(event.target.value)
+                              }
+                            />
+                          </label>
+                          <label>
+                            <span>Max</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              inputMode="decimal"
+                              placeholder="No limit"
+                              value={maximumPrice}
+                              onChange={(event) =>
+                                setMaximumPrice(event.target.value)
+                              }
+                            />
+                          </label>
+                        </div>
+                      </fieldset>
+
+                      <label className="catalog-filter-field">
+                        <span>Sort by</span>
+                        <select
+                          value={sortBy}
+                          onChange={(event) => setSortBy(event.target.value)}
+                        >
+                          <option value="title-asc">Title (A - Z)</option>
+                          <option value="title-desc">Title (Z - A)</option>
+                          <option value="release-newest">
+                            Release Date (Newest)
+                          </option>
+                          <option value="release-oldest">
+                            Release Date (Oldest)
+                          </option>
+                          <option value="price-highest">Price (Highest)</option>
+                          <option value="price-lowest">Price (Lowest)</option>
+                        </select>
+                      </label>
                     </div>
-                  </div>
-                )}
-                <label className="catalog-sort-filter">
-                  <span>Sort by</span>
-                  <select
-                    value={sortBy}
-                    onChange={(event) => setSortBy(event.target.value)}
-                  >
-                    <option value="title-asc">Title (A - Z)</option>
-                    <option value="title-desc">Title (Z - A)</option>
-                    <option value="release-newest">
-                      Release Date (Newest)
-                    </option>
-                    <option value="release-oldest">
-                      Release Date (Oldest)
-                    </option>
-                    <option value="price-highest">Price (Highest)</option>
-                    <option value="price-lowest">Price (Lowest)</option>
-                  </select>
-                </label>
-              </section>
+                    <footer className="catalog-filter-footer">
+                      <button
+                        className="catalog-filter-clear"
+                        type="button"
+                        onClick={clearFilters}
+                      >
+                        Clear all
+                      </button>
+                      <button
+                        className="catalog-filter-done"
+                        type="button"
+                        onClick={() => setIsFilterOpen(false)}
+                      >
+                        Show {sortedProducts.length}{" "}
+                        {sortedProducts.length === 1 ? "title" : "titles"}
+                      </button>
+                    </footer>
+                  </aside>
+                </>
+              )}
 
               <div
                 style={{
