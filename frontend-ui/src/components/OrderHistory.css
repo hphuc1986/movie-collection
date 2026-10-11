@@ -34,13 +34,19 @@
 .order-history-error button {
   min-height: 40px;
   padding: 0.55rem 0.9rem;
-  border: 1px solid #4a4658;
+  border: 1px solid #454545;
   border-radius: 4px;
-  background: #211e29;
-  color: #c6b7ff;
+  background: #242424;
+  color: #f2f2f2;
   cursor: pointer;
   font: inherit;
   font-size: 0.85rem;
+}
+
+.order-history-back:hover,
+.order-history-empty button:hover,
+.order-history-error button:hover {
+  border-color: #e50914;
 }
 
 .order-history-list {

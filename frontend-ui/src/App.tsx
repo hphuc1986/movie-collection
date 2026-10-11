@@ -276,8 +276,8 @@ function App() {
     <div
       style={{
         fontFamily: "Segoe UI, sans-serif",
-        backgroundColor: isCheckoutOpen ? "#fff" : "#121212",
-        color: isCheckoutOpen ? "#24252a" : "#fff",
+        backgroundColor: "#121212",
+        color: "#f2f2f2",
         minHeight: "100vh",
         padding: isCheckoutOpen ? 0 : "clamp(1rem, 4vw, 2rem)",
         boxSizing: "border-box",
