@@ -25,7 +25,8 @@ function App() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFormat, setSelectedFormat] = useState("All");
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedGenre, setSelectedGenre] = useState("");
+  const [sortBy, setSortBy] = useState("title-asc");
 
   // UX Interaction State Controls
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
@@ -162,8 +163,7 @@ function App() {
       }
     })();
     const matchesGenre =
-      selectedGenres.length === 0 ||
-      getProductGenres(product).some((genre) => selectedGenres.includes(genre));
+      !selectedGenre || getProductGenres(product).includes(selectedGenre);
 
     return (
       matchesCategory &&
@@ -172,13 +172,43 @@ function App() {
     );
   });
 
-  const toggleGenre = (genre: string) => {
-    setSelectedGenres((current) =>
-      current.includes(genre)
-        ? current.filter((selectedGenre) => selectedGenre !== genre)
-        : [...current, genre],
-    );
-  };
+  const sortedProducts = [...filteredProducts].sort((first, second) => {
+    const firstTitle = String(first.title ?? "");
+    const secondTitle = String(second.title ?? "");
+    const firstPrice = Number(first.price ?? 0);
+    const secondPrice = Number(second.price ?? 0);
+    const getReleaseTimestamp = (product: any) => {
+      const timestamp = Date.parse(
+        product.releaseDate ?? `${product.releaseYear ?? ""}-01-01`,
+      );
+      return Number.isNaN(timestamp) ? null : timestamp;
+    };
+
+    switch (sortBy) {
+      case "title-desc":
+        return secondTitle.localeCompare(firstTitle);
+      case "release-newest": {
+        const firstDate = getReleaseTimestamp(first);
+        const secondDate = getReleaseTimestamp(second);
+        if (firstDate === null) return secondDate === null ? 0 : 1;
+        if (secondDate === null) return -1;
+        return secondDate - firstDate;
+      }
+      case "release-oldest": {
+        const firstDate = getReleaseTimestamp(first);
+        const secondDate = getReleaseTimestamp(second);
+        if (firstDate === null) return secondDate === null ? 0 : 1;
+        if (secondDate === null) return -1;
+        return firstDate - secondDate;
+      }
+      case "price-highest":
+        return secondPrice - firstPrice;
+      case "price-lowest":
+        return firstPrice - secondPrice;
+      default:
+        return firstTitle.localeCompare(secondTitle);
+    }
+  });
 
   // Leave your cursor right here at the bottom and copy Part 2 immediately below!
   return (
@@ -444,11 +474,9 @@ function App() {
                     >
                       <button
                         type="button"
-                        className={
-                          selectedGenres.length === 0 ? "is-active" : ""
-                        }
-                        aria-pressed={selectedGenres.length === 0}
-                        onClick={() => setSelectedGenres([])}
+                        className={!selectedGenre ? "is-active" : ""}
+                        aria-pressed={!selectedGenre}
+                        onClick={() => setSelectedGenre("")}
                       >
                         All
                       </button>
@@ -456,11 +484,13 @@ function App() {
                         <button
                           key={genre}
                           type="button"
-                          className={
-                            selectedGenres.includes(genre) ? "is-active" : ""
+                          className={selectedGenre === genre ? "is-active" : ""}
+                          aria-pressed={selectedGenre === genre}
+                          onClick={() =>
+                            setSelectedGenre((current) =>
+                              current === genre ? "" : genre,
+                            )
                           }
-                          aria-pressed={selectedGenres.includes(genre)}
-                          onClick={() => toggleGenre(genre)}
                         >
                           {genre}
                         </button>
@@ -468,6 +498,24 @@ function App() {
                     </div>
                   </div>
                 )}
+                <label className="catalog-sort-filter">
+                  <span>Sort by</span>
+                  <select
+                    value={sortBy}
+                    onChange={(event) => setSortBy(event.target.value)}
+                  >
+                    <option value="title-asc">Title (A - Z)</option>
+                    <option value="title-desc">Title (Z - A)</option>
+                    <option value="release-newest">
+                      Release Date (Newest)
+                    </option>
+                    <option value="release-oldest">
+                      Release Date (Oldest)
+                    </option>
+                    <option value="price-highest">Price (Highest)</option>
+                    <option value="price-lowest">Price (Lowest)</option>
+                  </select>
+                </label>
               </section>
 
               <div
@@ -477,7 +525,7 @@ function App() {
                   gap: "2rem",
                 }}
               >
-                {filteredProducts.map((product: any) => {
+                {sortedProducts.map((product: any) => {
                   const isOutOfStock = product.stockQuantity <= 0;
                   const frontCoverUrl = getCoverImageUrl(product.frontCover);
 
@@ -605,7 +653,7 @@ function App() {
                   );
                 })}
               </div>
-              {filteredProducts.length === 0 && (
+              {sortedProducts.length === 0 && (
                 <p className="catalog-empty-state">
                   No titles match these filters. Try another search or format.
                 </p>

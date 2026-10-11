@@ -113,6 +113,32 @@
   color: #fff;
 }
 
+.catalog-sort-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 40px;
+  color: #aaa;
+  font-size: 0.82rem;
+}
+
+.catalog-sort-filter select {
+  width: min(100%, 250px);
+  min-height: 38px;
+  padding: 0.45rem 2rem 0.45rem 0.65rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #1d1d1d;
+  color: #eee;
+  font: inherit;
+  cursor: pointer;
+}
+
+.catalog-sort-filter select:focus-visible {
+  outline: 2px solid #e50914;
+  outline-offset: 2px;
+}
+
 .catalog-empty-state {
   padding: 2rem 1rem;
   color: #aaa;
