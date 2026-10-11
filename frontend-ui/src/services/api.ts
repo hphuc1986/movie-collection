@@ -5,6 +5,7 @@ export interface Movie {
   title: string;
   releaseYear?: number;
   format?: string;
+  genre?: string[];
   rating?: number;
   createdAt: string;
   frontCover?: string | null;

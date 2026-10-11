@@ -25,6 +25,7 @@ function App() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFormat, setSelectedFormat] = useState("All");
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
 
   // UX Interaction State Controls
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
@@ -32,7 +33,9 @@ function App() {
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
-  const [checkoutDiscountCode, setCheckoutDiscountCode] = useState<string | null>(null);
+  const [checkoutDiscountCode, setCheckoutDiscountCode] = useState<
+    string | null
+  >(null);
 
   const fetchCatalog = async () => {
     try {
@@ -114,6 +117,23 @@ function App() {
   const totalCartItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const catalogProducts = Array.isArray(products) ? products : [];
   const normalizedQuery = searchQuery.trim().toLowerCase();
+  const getProductGenres = (product: any): string[] => {
+    const genres = product.genre ?? product.Genre;
+    if (Array.isArray(genres)) {
+      return genres.filter(
+        (genre): genre is string => typeof genre === "string",
+      );
+    }
+    return typeof genres === "string"
+      ? genres
+          .split(",")
+          .map((genre: string) => genre.trim())
+          .filter(Boolean)
+      : [];
+  };
+  const availableGenres = [
+    ...new Set(catalogProducts.flatMap(getProductGenres)),
+  ].sort((first, second) => first.localeCompare(second));
   const filteredProducts = catalogProducts.filter((product: any) => {
     const searchableText = [
       product.title,
@@ -141,9 +161,24 @@ function App() {
           return true;
       }
     })();
+    const matchesGenre =
+      selectedGenres.length === 0 ||
+      getProductGenres(product).some((genre) => selectedGenres.includes(genre));
 
-    return matchesCategory && searchableText.includes(normalizedQuery);
+    return (
+      matchesCategory &&
+      matchesGenre &&
+      searchableText.includes(normalizedQuery)
+    );
   });
+
+  const toggleGenre = (genre: string) => {
+    setSelectedGenres((current) =>
+      current.includes(genre)
+        ? current.filter((selectedGenre) => selectedGenre !== genre)
+        : [...current, genre],
+    );
+  };
 
   // Leave your cursor right here at the bottom and copy Part 2 immediately below!
   return (
@@ -160,155 +195,157 @@ function App() {
       }}
     >
       {/* 1. APP NAVBAR HEADER */}
-      {!isCheckoutOpen && <header
-        className="app-header"
-        style={{
-          borderBottom: "1px solid #333",
-          paddingBottom: "1rem",
-          marginBottom: "2rem",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "clamp(1rem, 4vw, 3.5rem)",
-        }}
-      >
-        <div
-          style={{ cursor: "pointer" }}
-          onClick={() => setSelectedProduct(null)}
-        >
-          <h1
-            style={{
-              color: "#E50914",
-              margin: 1,
-              letterSpacing: "0.5px",
-              fontSize: "clamp(1.25rem, 6vw, 2.25rem)",
-              whiteSpace: "nowrap",
-            }}
-          >
-            CineStore
-          </h1>
-        </div>
-
-        <div
+      {!isCheckoutOpen && (
+        <header
+          className="app-header"
           style={{
+            borderBottom: "1px solid #333",
+            paddingBottom: "1rem",
+            marginBottom: "2rem",
             display: "flex",
+            justifyContent: "space-between",
             alignItems: "center",
-            gap: "clamp(0.4rem, 2vw, 1.5rem)",
-            flexShrink: 0,
+            gap: "clamp(1rem, 4vw, 3.5rem)",
           }}
         >
-          <button
-            onClick={() => setIsCartOpen(true)}
+          <div
+            style={{ cursor: "pointer" }}
+            onClick={() => setSelectedProduct(null)}
+          >
+            <h1
+              style={{
+                color: "#E50914",
+                margin: 1,
+                letterSpacing: "0.5px",
+                fontSize: "clamp(1.25rem, 6vw, 2.25rem)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              CineStore
+            </h1>
+          </div>
+
+          <div
             style={{
-              backgroundColor: "#222",
-              border: "1px solid #444",
-              color: "#fff",
-              padding: "0.5rem clamp(0.35rem, 1.4vw, 1rem)",
-              borderRadius: "20px",
-              cursor: "pointer",
-              fontWeight: "bold",
-              fontSize: "0.85rem",
               display: "flex",
               alignItems: "center",
-              gap: "0.3rem",
-              whiteSpace: "nowrap",
+              gap: "clamp(0.4rem, 2vw, 1.5rem)",
               flexShrink: 0,
             }}
           >
-            🛒 Cart{" "}
-            <span
-              style={{
-                backgroundColor: "#E50914",
-                color: "#fff",
-                padding: "0.1rem 0.35rem",
-                borderRadius: "10px",
-                fontSize: "0.75rem",
-              }}
-            >
-              {totalCartItems}
-            </span>
-          </button>
-
-          {user ? (
-            <div
-              className="signed-in-actions"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "clamp(0.4rem, 2vw, 1rem)",
-              }}
-            >
-              <span
-                className="signed-in-greeting"
-                style={{
-                  marginRight: "1rem",
-                  fontSize: "0.95rem",
-                  color: "#00bc8c",
-                }}
-              >
-                👋 <strong>{user.fullName}</strong>
-              </span>
-              {!String(user.email || "").endsWith("@cinestore.invalid") && (
-                <button
-                  className="orders-nav-button"
-                  onClick={() => {
-                    setIsOrderHistoryOpen(true);
-                    setIsCartOpen(false);
-                  }}
-                  style={{
-                    padding: "0.4rem 0.75rem",
-                    backgroundColor: "#222",
-                    color: "#fff",
-                    border: "1px solid #444",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontSize: "0.85rem",
-                    fontWeight: "bold",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Orders
-                </button>
-              )}
-              <button
-                className="logout-nav-button"
-                onClick={handleLogout}
-                style={{
-                  padding: "0.4rem 1rem",
-                  backgroundColor: "#333",
-                  color: "#fff",
-                  border: "1px solid #555",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "0.85rem",
-                  fontWeight: "bold",
-                }}
-              >
-                Logout
-              </button>
-            </div>
-          ) : (
             <button
-              onClick={() => setShowAuthModal(true)}
+              onClick={() => setIsCartOpen(true)}
               style={{
-                padding: "0.5rem clamp(0.5rem, 2vw, 1.2rem)",
-                backgroundColor: "#E50914",
+                backgroundColor: "#222",
+                border: "1px solid #444",
                 color: "#fff",
-                border: "none",
-                borderRadius: "4px",
+                padding: "0.5rem clamp(0.35rem, 1.4vw, 1rem)",
+                borderRadius: "20px",
                 cursor: "pointer",
                 fontWeight: "bold",
                 fontSize: "0.85rem",
-                textTransform: "uppercase",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.3rem",
                 whiteSpace: "nowrap",
                 flexShrink: 0,
               }}
             >
-              Sign In
+              🛒 Cart{" "}
+              <span
+                style={{
+                  backgroundColor: "#E50914",
+                  color: "#fff",
+                  padding: "0.1rem 0.35rem",
+                  borderRadius: "10px",
+                  fontSize: "0.75rem",
+                }}
+              >
+                {totalCartItems}
+              </span>
             </button>
-          )}
-        </div>
-      </header>}
+
+            {user ? (
+              <div
+                className="signed-in-actions"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "clamp(0.4rem, 2vw, 1rem)",
+                }}
+              >
+                <span
+                  className="signed-in-greeting"
+                  style={{
+                    marginRight: "1rem",
+                    fontSize: "0.95rem",
+                    color: "#00bc8c",
+                  }}
+                >
+                  👋 <strong>{user.fullName}</strong>
+                </span>
+                {!String(user.email || "").endsWith("@cinestore.invalid") && (
+                  <button
+                    className="orders-nav-button"
+                    onClick={() => {
+                      setIsOrderHistoryOpen(true);
+                      setIsCartOpen(false);
+                    }}
+                    style={{
+                      padding: "0.4rem 0.75rem",
+                      backgroundColor: "#222",
+                      color: "#fff",
+                      border: "1px solid #444",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      fontSize: "0.85rem",
+                      fontWeight: "bold",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Orders
+                  </button>
+                )}
+                <button
+                  className="logout-nav-button"
+                  onClick={handleLogout}
+                  style={{
+                    padding: "0.4rem 1rem",
+                    backgroundColor: "#333",
+                    color: "#fff",
+                    border: "1px solid #555",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontSize: "0.85rem",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowAuthModal(true)}
+                style={{
+                  padding: "0.5rem clamp(0.5rem, 2vw, 1.2rem)",
+                  backgroundColor: "#E50914",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  fontSize: "0.85rem",
+                  textTransform: "uppercase",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                Sign In
+              </button>
+            )}
+          </div>
+        </header>
+      )}
 
       {error && (
         <div
@@ -398,6 +435,40 @@ function App() {
                     </button>
                   ))}
                 </div>
+                {availableGenres.length > 0 && (
+                  <div className="catalog-genre-filter">
+                    <span className="catalog-filter-label">Genre</span>
+                    <div
+                      className="catalog-genre-options"
+                      role="group"
+                      aria-label="Filter movies by genre"
+                    >
+                      <button
+                        type="button"
+                        className={
+                          selectedGenres.length === 0 ? "is-active" : ""
+                        }
+                        aria-pressed={selectedGenres.length === 0}
+                        onClick={() => setSelectedGenres([])}
+                      >
+                        All genres
+                      </button>
+                      {availableGenres.map((genre) => (
+                        <button
+                          key={genre}
+                          type="button"
+                          className={
+                            selectedGenres.includes(genre) ? "is-active" : ""
+                          }
+                          aria-pressed={selectedGenres.includes(genre)}
+                          onClick={() => toggleGenre(genre)}
+                        >
+                          {genre}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </section>
 
               <div

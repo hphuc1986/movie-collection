@@ -177,9 +177,7 @@ export function ProductDetail({
                 ? "Out of stock"
                 : `${product.stockQuantity} In stock`}
             </strong>
-            {!isOutOfStock && (
-              <span>Usually shipped within 24 hours</span>
-            )}
+            {!isOutOfStock && <span>Usually shipped within 24 hours</span>}
           </div>
 
           {/* QUANTITY CONTROL INCREMENT MATRIX */}
@@ -345,7 +343,6 @@ export function ProductDetail({
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
